@@ -1,195 +1,249 @@
-use reqwest;
-use serde::{Deserialize, Serialize};
-use std::io::{self, Write};
-use tokio;
+use anyhow::Result;
+use clap::Parser;
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use ratatui::{
+    backend::{CrosstermBackend},
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
+    Frame, Terminal,
+};
+use std::{
+    io::{self, Stdout},
+    sync::Arc,
+    time::Duration,
+};
+use tokio::sync::Mutex;
 
-#[derive(Serialize,Deserialize, Debug,Clone)]
-struct ChatMessage {
-    role: String,
-    content: String,
-}
+mod gemini;
+mod ui;
 
-#[derive(Serialize,Deserialize, Debug,Clone)]
-struct ChatRequest {
-    model: String,
-    messages: Vec<ChatMessage>,
-    max_tokens: u32,
-    temperature: f32,
-}
+use gemini::GeminiClient;
+use ui::{App, InputMode, Message, MessageType};
 
-#[derive(Serialize,Deserialize, Debug,Clone)]
-struct ChatChoice {
-    message: ChatMessage,
-}
-
-#[derive(Serialize,Deserialize, Debug,Clone)]
-struct ChatResponse {
-    choices: Vec<ChatChoice>,
-}
-
-struct ChatClient {
-    client: reqwest::Client,
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Gemini API key
+    #[arg(short, long, env = "GEMINI_API_KEY")]
     api_key: String,
-    api_url: String,
-    model: String,
-    conversation: Vec<ChatMessage>,
-}
-
-impl ChatClient {
-    fn new(api_key: String) -> Self {
-        Self {
-            client: reqwest::Client::new(),
-            api_key,
-            api_url: "https://gateway.ai.cloudflare.com/v1/0177dfd3fc04f0bb51d422b49f2dad20/jyasu-demo/openrouter/v1/chat/completions".to_string(),
-            model: "deepseek/deepseek-chat:free".to_string(),
-            conversation: Vec::new(),
-        }
-    }
-
-    fn add_message(&mut self, role: &str, content: &str) {
-        self.conversation.push(ChatMessage {
-            role: role.to_string(),
-            content: content.to_string(),
-        });
-    }
-
-    async fn send_message(&mut self, user_input: &str) -> Result<String, Box<dyn std::error::Error>> {
-        // Add user message to conversation
-        self.add_message("user", user_input);
-
-        let request = ChatRequest {
-            model: self.model.clone(),
-            messages: self.conversation.clone(),
-            max_tokens: 1000,
-            temperature: 0.7,
-        };
-
-        let response = self
-            .client
-            .post(&self.api_url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("Content-Type", "application/json")
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            let error_text = response.text().await?;
-            return Err(format!("API error: {}", error_text).into());
-        }
-
-        let chat_response: ChatResponse = response.json().await?;
-        
-        if let Some(choice) = chat_response.choices.first() {
-            let assistant_message = &choice.message.content;
-            // Add assistant response to conversation
-            self.add_message("assistant", assistant_message);
-            Ok(assistant_message.clone())
-        } else {
-            Err("No response from API".into())
-        }
-    }
-
-    fn clear_conversation(&mut self) {
-        self.conversation.clear();
-    }
-
-    fn show_conversation(&self) {
-        println!("\n=== Conversation History ===");
-        for (i, msg) in self.conversation.iter().enumerate() {
-            println!("{}. {}: {}", i + 1, msg.role.to_uppercase(), msg.content);
-        }
-        println!("============================\n");
-    }
-}
-
-fn print_help() {
-    println!("\n=== AI Chat CLI Help ===");
-    println!("Commands:");
-    println!("  /help    - Show this help message");
-    println!("  /clear   - Clear conversation history");
-    println!("  /history - Show conversation history");
-    println!("  /quit    - Exit the chat");
-    println!("  Just type your message to chat with the AI!");
-    println!("========================\n");
-}
-
-fn get_api_key() -> Result<String, Box<dyn std::error::Error>> {
-    // Try to get from environment variable first
-    if let Ok(key) = std::env::var("API_KEY") {
-        return Ok(key);
-    }
     
-    // If not found, prompt user
-    print!("Enter your API key: ");
-    io::stdout().flush()?;
-    let mut input = String::new();
-    io::stdin().read_line(&mut input)?;
-    Ok(input.trim().to_string())
+    /// Model to use (default: gemini-2.5-flash-lite-preview-06-17)
+    #[arg(short, long, default_value = "gemini-2.5-flash-lite-preview-06-17")]
+    model: String,
 }
+
+type AppTerminal = Terminal<CrosstermBackend<Stdout>>;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🤖 AI Chat CLI");
-    println!("===============");
-    println!("Welcome to the AI Chat CLI! Type /help for commands.\n");
-
-    // Get API key
-    let api_key = match get_api_key() {
-        Ok(key) if !key.is_empty() => key,
-        _ => {
-            eprintln!("Error: No API key provided. Set API_KEY environment variable or enter when prompted.");
-            return Ok(());
-        }
-    };
-
-    let mut client = ChatClient::new(api_key);
+async fn main() -> Result<()> {
+    let args = Args::parse();
     
+    // Setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    // Create app
+    let gemini_client = GeminiClient::new(args.api_key, args.model);
+    let app = Arc::new(Mutex::new(App::new(gemini_client)));
+
+    // Run the app
+    let result = run_app(&mut terminal, app).await;
+
+    // Restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    if let Err(err) = result {
+        eprintln!("Error: {}", err);
+    }
+
+    Ok(())
+}
+
+async fn run_app(terminal: &mut AppTerminal, app: Arc<Mutex<App>>) -> Result<()> {
     loop {
-        print!("You: ");
-        io::stdout().flush()?;
-        
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        let input = input.trim();
-        
-        if input.is_empty() {
-            continue;
+        // Draw UI
+        {
+            let app_guard = app.lock().await;
+            terminal.draw(|f| ui(&mut *f, &app_guard))?;
         }
-        
-        match input {
-            "/quit" | "/exit" => {
-                println!("👋 Goodbye!");
-                break;
-            }
-            "/help" => {
-                print_help();
-                continue;
-            }
-            "/clear" => {
-                client.clear_conversation();
-                println!("🧹 Conversation cleared!");
-                continue;
-            }
-            "/history" => {
-                client.show_conversation();
-                continue;
-            }
-            _ => {
-                print!("AI: ");
-                io::stdout().flush()?;
-                
-                match client.send_message(input).await {
-                    Ok(response) => {
-                        println!("{}\n", response);
+
+        // Handle events
+        if event::poll(Duration::from_millis(50))? {
+            if let Event::Key(key) = event::read()? {
+                let mut app_guard = app.lock().await;
+                match app_guard.input_mode {
+                    InputMode::Normal => match key.code {
+                        KeyCode::Char('q') => break,
+                        KeyCode::Char('i') => {
+                            app_guard.input_mode = InputMode::Editing;
+                        }
+                        KeyCode::Char('c') => {
+                            app_guard.messages.clear();
+                        }
+                        KeyCode::Up => {
+                            if app_guard.scroll_offset > 0 {
+                                app_guard.scroll_offset -= 1;
+                            }
+                        }
+                        KeyCode::Down => {
+                            app_guard.scroll_offset += 1;
+                        }
+                        _ => {}
                     }
-                    Err(e) => {
-                        eprintln!("❌ Error: {}\n", e);
+                    InputMode::Editing => match key.code {
+                        KeyCode::Enter => {
+                            let input = app_guard.input.clone();
+                            if !input.trim().is_empty() {
+                                app_guard.messages.push(Message {
+                                    content: input.clone(),
+                                    message_type: MessageType::User,
+                                    timestamp: chrono::Utc::now(),
+                                });
+                                app_guard.input.clear();
+                                app_guard.input_mode = InputMode::Normal;
+                                app_guard.is_loading = true;
+                                
+                                // Send message to Gemini
+                                let client = app_guard.gemini_client.clone();
+                                let app_clone = Arc::clone(&app);
+                                tokio::spawn(async move {
+                                    match client.send_message(&input).await {
+                                        Ok(response) => {
+                                            let mut app_guard = app_clone.lock().await;
+                                            app_guard.messages.push(Message {
+                                                content: response,
+                                                message_type: MessageType::Assistant,
+                                                timestamp: chrono::Utc::now(),
+                                            });
+                                            app_guard.is_loading = false;
+                                        }
+                                        Err(e) => {
+                                            let mut app_guard = app_clone.lock().await;
+                                            app_guard.messages.push(Message {
+                                                content: format!("Error: {}", e),
+                                                message_type: MessageType::Error,
+                                                timestamp: chrono::Utc::now(),
+                                            });
+                                            app_guard.is_loading = false;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        KeyCode::Char(c) => {
+                            app_guard.input.push(c);
+                        }
+                        KeyCode::Backspace => {
+                            app_guard.input.pop();
+                        }
+                        KeyCode::Esc => {
+                            app_guard.input_mode = InputMode::Normal;
+                        }
+                        _ => {}
                     }
                 }
             }
         }
     }
-    
     Ok(())
+}
+
+fn ui(f: &mut Frame, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Min(0),
+            Constraint::Length(3),
+        ])
+        .split(f.size());
+
+    // Title bar
+    let title = Paragraph::new("Gemini Chat CLI")
+        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .block(Block::default().borders(Borders::BOTTOM));
+    f.render_widget(title, chunks[0]);
+
+    // Chat messages
+    let messages: Vec<ListItem> = app.messages
+        .iter()
+        .skip(app.scroll_offset)
+        .map(|m| {
+            let timestamp = m.timestamp.format("%H:%M:%S").to_string();
+            let (prefix, style) = match m.message_type {
+                MessageType::User => ("You", Style::default().fg(Color::Green)),
+                MessageType::Assistant => ("Gemini", Style::default().fg(Color::Blue)),
+                MessageType::Error => ("Error", Style::default().fg(Color::Red)),
+            };
+            
+            let wrapped_text = textwrap::fill(&m.content, chunks[1].width.saturating_sub(4) as usize);
+            let lines: Vec<Line> = wrapped_text
+                .split('\n')
+                .enumerate()
+                .map(|(i, line)| {
+                    if i == 0 {
+                        Line::from(vec![
+                            Span::styled(format!("[{}] {}: ", timestamp, prefix), style.add_modifier(Modifier::BOLD)),
+                            Span::raw(format!("{line}")),
+                        ])
+                    } else {
+                        Line::from(vec![
+                            Span::raw(" ".repeat(timestamp.len() + prefix.len() + 4)),
+                            Span::raw(format!("{line}")),
+                        ])
+                    }
+                })
+                .collect();
+            
+            ListItem::new(lines)
+        })
+        .collect();
+
+    let messages_list = List::new(messages)
+        .block(Block::default().borders(Borders::ALL).title("Chat"));
+    f.render_widget(messages_list, chunks[1]);
+
+    // Input box
+    let input_style = match app.input_mode {
+        InputMode::Normal => Style::default(),
+        InputMode::Editing => Style::default().fg(Color::Yellow),
+    };
+    
+    let input_text = if app.is_loading {
+        "Loading...".to_string()
+    } else {
+        app.input.clone()
+    };
+    
+    let input = Paragraph::new(input_text)
+        .style(input_style)
+        .block(Block::default().borders(Borders::ALL).title(match app.input_mode {
+            InputMode::Normal => "Input (press 'i' to edit, 'q' to quit, 'c' to clear)",
+            InputMode::Editing => "Input (press Esc to stop editing, Enter to send)",
+        }))
+        .wrap(Wrap { trim: true });
+    f.render_widget(input, chunks[2]);
+
+    // Set cursor position
+    if app.input_mode == InputMode::Editing && !app.is_loading {
+        f.set_cursor(
+            chunks[2].x + app.input.len() as u16 + 1,
+            chunks[2].y + 1,
+        );
+    }
 }
