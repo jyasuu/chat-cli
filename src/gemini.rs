@@ -205,13 +205,13 @@ impl GeminiClient {
                                                         let text = &candidate.content.parts[0].text;
                                                         log_debug(&format!("Extracted text: {:?}", text));
                                                         if !text.is_empty() {
-                                                            log_debug(&format!("Sending text to channel: {:?} (length: {})", text, text.len()));
+                                                            log_debug(&format!("GEMINI: Sending text to channel: {:?} (length: {})", text, text.len()));
                                                             match tx.send(text.clone()).await {
                                                                 Ok(_) => {
-                                                                    log_debug("Text sent successfully to channel");
+                                                                    log_debug("GEMINI: Text sent successfully to channel");
                                                                 }
-                                                                Err(_) => {
-                                                                    log_debug("Receiver dropped, stopping stream");
+                                                                Err(e) => {
+                                                                    log_debug(&format!("GEMINI: Receiver dropped, stopping stream: {}", e));
                                                                     return; // Receiver dropped
                                                                 }
                                                             }

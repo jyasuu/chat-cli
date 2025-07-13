@@ -147,12 +147,21 @@ async fn run_app(terminal: &mut AppTerminal, app: Arc<Mutex<App>>) -> Result<()>
                                             let mut received_any_data = false;
                                             let mut chunk_count = 0;
                                             
+                                            // Add a small delay to ensure the sender task has started
+                                            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                                            log_debug("After initial delay, starting to receive...");
+                                            
                                             log_debug("Starting to receive chunks from channel...");
+                                            log_debug(&format!("Channel receiver created, starting loop..."));
                                             loop {
-                                                match rx.recv().await {
-                                                    Some(chunk) => {
+                                                log_debug("Waiting for next chunk from channel...");
+                                                match tokio::time::timeout(
+                                                    tokio::time::Duration::from_secs(10),
+                                                    rx.recv()
+                                                ).await {
+                                                    Ok(Some(chunk)) => {
                                                         chunk_count += 1;
-                                                        log_debug(&format!("Received chunk #{}: {:?} (length: {})", chunk_count, chunk, chunk.len()));
+                                                        log_debug(&format!("MAIN: Received chunk #{}: {:?} (length: {})", chunk_count, chunk, chunk.len()));
                                                         
                                                         // Check if this is an error message
                                                         if chunk.starts_with("JSON parse error:") || chunk.starts_with("Stream error:") {
@@ -168,7 +177,7 @@ async fn run_app(terminal: &mut AppTerminal, app: Arc<Mutex<App>>) -> Result<()>
                                                             break;
                                                         }
                                                         
-                                                        // Only accumulate non-error chunks
+                                                        // Accumulate all non-error chunks
                                                         received_any_data = true;
                                                         accumulated_response.push_str(&chunk);
                                                         log_debug(&format!("Accumulated response now: {:?}", accumulated_response));
@@ -180,8 +189,12 @@ async fn run_app(terminal: &mut AppTerminal, app: Arc<Mutex<App>>) -> Result<()>
                                                             log_debug("Updated streaming_message in app state");
                                                         }
                                                     }
-                                                    None => {
+                                                    Ok(None) => {
                                                         log_debug("Channel closed - sender has finished");
+                                                        break;
+                                                    }
+                                                    Err(_) => {
+                                                        log_debug("Timeout waiting for chunks - no data received in 10 seconds");
                                                         break;
                                                     }
                                                 }
