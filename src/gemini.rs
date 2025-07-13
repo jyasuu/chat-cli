@@ -45,6 +45,12 @@ struct GenerationConfig {
 #[derive(Debug, Serialize, Deserialize)]
 struct GenerateContentResponse {
     candidates: Vec<Candidate>,
+    #[serde(rename = "usageMetadata", skip_serializing_if = "Option::is_none")]
+    usage_metadata: Option<serde_json::Value>,
+    #[serde(rename = "modelVersion", skip_serializing_if = "Option::is_none")]
+    model_version: Option<String>,
+    #[serde(rename = "responseId", skip_serializing_if = "Option::is_none")]
+    response_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -52,6 +58,8 @@ struct Candidate {
     content: Content,
     #[serde(rename = "finishReason")]
     finish_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    index: Option<i32>,
 }
 
 impl GeminiClient {
@@ -196,6 +204,7 @@ impl GeminiClient {
                                         }
                                         
                                         // Try to parse the JSON response
+                                        log_debug(&format!("Attempting to parse JSON: {}", json_data));
                                         match serde_json::from_str::<GenerateContentResponse>(json_data) {
                                             Ok(response_data) => {
                                                 log_debug(&format!("Successfully parsed JSON, candidates: {}", response_data.candidates.len()));
