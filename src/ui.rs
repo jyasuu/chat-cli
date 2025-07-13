@@ -28,6 +28,7 @@ pub struct App {
     pub scroll_offset: usize,
     pub is_loading: bool,
     pub gemini_client: GeminiClient,
+    pub streaming_message: Option<String>,
 }
 
 impl App {
@@ -37,7 +38,7 @@ impl App {
             input_mode: InputMode::Normal,
             messages: vec![
                 Message {
-                    content: "Welcome to Gemini Chat CLI! Press 'i' to start typing, 'q' to quit, 'c' to clear chat.".to_string(),
+                    content: "Welcome to Gemini Chat CLI with Streaming! Press 'i' to start typing, 'q' to quit, 'c' to clear chat.".to_string(),
                     message_type: MessageType::Assistant,
                     timestamp: Utc::now(),
                 }
@@ -45,6 +46,7 @@ impl App {
             scroll_offset: 0,
             is_loading: false,
             gemini_client,
+            streaming_message: None,
         }
     }
 }

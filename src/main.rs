@@ -17,6 +17,8 @@ use std::{
     io::{self, Stdout},
     sync::Arc,
     time::Duration,
+    fs::OpenOptions,
+    io::Write as IoWrite,
 };
 use tokio::sync::Mutex;
 
@@ -118,28 +120,128 @@ async fn run_app(terminal: &mut AppTerminal, app: Arc<Mutex<App>>) -> Result<()>
                                 app_guard.input_mode = InputMode::Normal;
                                 app_guard.is_loading = true;
                                 
-                                // Send message to Gemini
+                                // Add logging function
+                                let log_debug = |msg: &str| {
+                                    if let Ok(mut file) = OpenOptions::new()
+                                        .create(true)
+                                        .append(true)
+                                        .open("tmp_rovodev_streaming_debug.log") 
+                                    {
+                                        let timestamp = chrono::Utc::now().format("%H:%M:%S%.3f");
+                                        let _ = writeln!(file, "[UI] [{}] {}", timestamp, msg);
+                                    }
+                                };
+                                
+                                log_debug(&format!("Starting to send message: {:?}", input));
+                                
+                                // Send message to Gemini with streaming
                                 let client = app_guard.gemini_client.clone();
                                 let app_clone = Arc::clone(&app);
                                 tokio::spawn(async move {
-                                    match client.send_message(&input).await {
-                                        Ok(response) => {
-                                            let mut app_guard = app_clone.lock().await;
-                                            app_guard.messages.push(Message {
-                                                content: response,
-                                                message_type: MessageType::Assistant,
-                                                timestamp: chrono::Utc::now(),
-                                            });
-                                            app_guard.is_loading = false;
+                                    log_debug("Calling send_message_stream");
+                                    match client.send_message_stream(&input).await {
+                                        Ok(mut rx) => {
+                                            log_debug("Successfully got receiver from send_message_stream");
+                                            let mut accumulated_response = String::new();
+                                            let mut received_any_data = false;
+                                            let mut chunk_count = 0;
+                                            
+                                            log_debug("Starting to receive chunks");
+                                            while let Some(chunk) = rx.recv().await {
+                                                chunk_count += 1;
+                                                log_debug(&format!("Received chunk #{}: {:?}", chunk_count, chunk));
+                                                received_any_data = true;
+                                                
+                                                // Check if this is an error message
+                                                if chunk.starts_with("JSON parse error:") || chunk.starts_with("Stream error:") {
+                                                    log_debug(&format!("Received error chunk: {:?}", chunk));
+                                                    let mut app_guard = app_clone.lock().await;
+                                                    app_guard.streaming_message = None;
+                                                    app_guard.messages.push(Message {
+                                                        content: format!("Streaming error: {}. Falling back to regular API.", chunk),
+                                                        message_type: MessageType::Error,
+                                                        timestamp: chrono::Utc::now(),
+                                                    });
+                                                    app_guard.is_loading = false;
+                                                    break;
+                                                }
+                                                
+                                                accumulated_response.push_str(&chunk);
+                                                log_debug(&format!("Accumulated response now: {:?}", accumulated_response));
+                                                
+                                                // Update streaming message in real-time
+                                                {
+                                                    let mut app_guard = app_clone.lock().await;
+                                                    app_guard.streaming_message = Some(accumulated_response.clone());
+                                                    log_debug("Updated streaming_message in app state");
+                                                }
+                                            }
+                                            
+                                            log_debug(&format!("Finished receiving chunks. received_any_data: {}, accumulated_response: {:?}", received_any_data, accumulated_response));
+                                            
+                                            // Finalize the message if we received data
+                                            if received_any_data && !accumulated_response.trim().is_empty() {
+                                                log_debug("Finalizing message with accumulated response");
+                                                let mut app_guard = app_clone.lock().await;
+                                                app_guard.streaming_message = None;
+                                                app_guard.messages.push(Message {
+                                                    content: accumulated_response,
+                                                    message_type: MessageType::Assistant,
+                                                    timestamp: chrono::Utc::now(),
+                                                });
+                                                app_guard.is_loading = false;
+                                            } else {
+                                                log_debug("No data received, falling back to regular API");
+                                                // Fallback to regular API if streaming failed
+                                                match client.send_message(&input).await {
+                                                    Ok(response) => {
+                                                        let mut app_guard = app_clone.lock().await;
+                                                        app_guard.streaming_message = None;
+                                                        app_guard.messages.push(Message {
+                                                            content: response,
+                                                            message_type: MessageType::Assistant,
+                                                            timestamp: chrono::Utc::now(),
+                                                        });
+                                                        app_guard.is_loading = false;
+                                                    }
+                                                    Err(fallback_e) => {
+                                                        let mut app_guard = app_clone.lock().await;
+                                                        app_guard.streaming_message = None;
+                                                        app_guard.messages.push(Message {
+                                                            content: format!("Fallback API error: {}", fallback_e),
+                                                            message_type: MessageType::Error,
+                                                            timestamp: chrono::Utc::now(),
+                                                        });
+                                                        app_guard.is_loading = false;
+                                                    }
+                                                }
+                                            }
                                         }
                                         Err(e) => {
-                                            let mut app_guard = app_clone.lock().await;
-                                            app_guard.messages.push(Message {
-                                                content: format!("Error: {}", e),
-                                                message_type: MessageType::Error,
-                                                timestamp: chrono::Utc::now(),
-                                            });
-                                            app_guard.is_loading = false;
+                                            log_debug(&format!("send_message_stream failed with error: {}", e));
+                                            // Try fallback to regular API
+                                            match client.send_message(&input).await {
+                                                Ok(response) => {
+                                                    let mut app_guard = app_clone.lock().await;
+                                                    app_guard.streaming_message = None;
+                                                    app_guard.messages.push(Message {
+                                                        content: response,
+                                                        message_type: MessageType::Assistant,
+                                                        timestamp: chrono::Utc::now(),
+                                                    });
+                                                    app_guard.is_loading = false;
+                                                }
+                                                Err(fallback_e) => {
+                                                    let mut app_guard = app_clone.lock().await;
+                                                    app_guard.streaming_message = None;
+                                                    app_guard.messages.push(Message {
+                                                        content: format!("Streaming failed: {}. Fallback failed: {}", e, fallback_e),
+                                                        message_type: MessageType::Error,
+                                                        timestamp: chrono::Utc::now(),
+                                                    });
+                                                    app_guard.is_loading = false;
+                                                }
+                                            }
                                         }
                                     }
                                 });
@@ -180,7 +282,18 @@ fn ui(f: &mut Frame, app: &App) {
     f.render_widget(title, chunks[0]);
 
     // Chat messages
-    let messages: Vec<ListItem> = app.messages
+    let mut all_messages = app.messages.clone();
+    
+    // Add streaming message if present
+    if let Some(ref streaming_content) = app.streaming_message {
+        all_messages.push(Message {
+            content: format!("{} |", streaming_content), // Add blinking cursor
+            message_type: MessageType::Assistant,
+            timestamp: chrono::Utc::now(),
+        });
+    }
+    
+    let messages: Vec<ListItem> = all_messages
         .iter()
         .skip(app.scroll_offset)
         .map(|m| {
@@ -225,7 +338,11 @@ fn ui(f: &mut Frame, app: &App) {
     };
     
     let input_text = if app.is_loading {
-        "Loading...".to_string()
+        if app.streaming_message.is_some() {
+            "Streaming response in real-time...".to_string()
+        } else {
+            "Waiting for response...".to_string()
+        }
     } else {
         app.input.clone()
     };
