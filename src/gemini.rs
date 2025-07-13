@@ -143,14 +143,14 @@ impl GeminiClient {
             return Err(anyhow!("API request failed: {}", error_text));
         }
 
-        let (tx, rx) = mpsc::channel(100);
+        let (tx, rx) = mpsc::channel::<String>(100);
         
         // Add logging function
         let log_debug = |msg: &str| {
             if let Ok(mut file) = OpenOptions::new()
                 .create(true)
                 .append(true)
-                .open("/workspace/chat-cli/tmp_rovodev_streaming_debug.log") 
+                .open("tmp_rovodev_streaming_debug.log") 
             {
                 let timestamp = chrono::Utc::now().format("%H:%M:%S%.3f");
                 let _ = writeln!(file, "[{}] {}", timestamp, msg);
@@ -205,12 +205,16 @@ impl GeminiClient {
                                                         let text = &candidate.content.parts[0].text;
                                                         log_debug(&format!("Extracted text: {:?}", text));
                                                         if !text.is_empty() {
-                                                            log_debug(&format!("Sending text to channel: {:?}", text));
-                                                            if tx.send(text.clone()).await.is_err() {
-                                                                log_debug("Receiver dropped, stopping stream");
-                                                                return; // Receiver dropped
+                                                            log_debug(&format!("Sending text to channel: {:?} (length: {})", text, text.len()));
+                                                            match tx.send(text.clone()).await {
+                                                                Ok(_) => {
+                                                                    log_debug("Text sent successfully to channel");
+                                                                }
+                                                                Err(_) => {
+                                                                    log_debug("Receiver dropped, stopping stream");
+                                                                    return; // Receiver dropped
+                                                                }
                                                             }
-                                                            log_debug("Text sent successfully");
                                                         } else {
                                                             log_debug("Text is empty, skipping");
                                                         }
@@ -247,6 +251,8 @@ impl GeminiClient {
             }
             
             log_debug("Stream processing completed");
+            // Explicitly drop the sender to signal completion
+            drop(tx);
         });
 
         Ok(rx)

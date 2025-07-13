@@ -142,41 +142,52 @@ async fn run_app(terminal: &mut AppTerminal, app: Arc<Mutex<App>>) -> Result<()>
                                     match client.send_message_stream(&input).await {
                                         Ok(mut rx) => {
                                             log_debug("Successfully got receiver from send_message_stream");
+                                            log_debug("Receiver channel capacity and status check...");
                                             let mut accumulated_response = String::new();
                                             let mut received_any_data = false;
                                             let mut chunk_count = 0;
                                             
-                                            log_debug("Starting to receive chunks");
-                                            while let Some(chunk) = rx.recv().await {
-                                                chunk_count += 1;
-                                                log_debug(&format!("Received chunk #{}: {:?}", chunk_count, chunk));
-                                                received_any_data = true;
-                                                
-                                                // Check if this is an error message
-                                                if chunk.starts_with("JSON parse error:") || chunk.starts_with("Stream error:") {
-                                                    log_debug(&format!("Received error chunk: {:?}", chunk));
-                                                    let mut app_guard = app_clone.lock().await;
-                                                    app_guard.streaming_message = None;
-                                                    app_guard.messages.push(Message {
-                                                        content: format!("Streaming error: {}. Falling back to regular API.", chunk),
-                                                        message_type: MessageType::Error,
-                                                        timestamp: chrono::Utc::now(),
-                                                    });
-                                                    app_guard.is_loading = false;
-                                                    break;
-                                                }
-                                                
-                                                accumulated_response.push_str(&chunk);
-                                                log_debug(&format!("Accumulated response now: {:?}", accumulated_response));
-                                                
-                                                // Update streaming message in real-time
-                                                {
-                                                    let mut app_guard = app_clone.lock().await;
-                                                    app_guard.streaming_message = Some(accumulated_response.clone());
-                                                    log_debug("Updated streaming_message in app state");
+                                            log_debug("Starting to receive chunks from channel...");
+                                            loop {
+                                                match rx.recv().await {
+                                                    Some(chunk) => {
+                                                        chunk_count += 1;
+                                                        log_debug(&format!("Received chunk #{}: {:?} (length: {})", chunk_count, chunk, chunk.len()));
+                                                        
+                                                        // Check if this is an error message
+                                                        if chunk.starts_with("JSON parse error:") || chunk.starts_with("Stream error:") {
+                                                            log_debug(&format!("Received error chunk: {:?}", chunk));
+                                                            let mut app_guard = app_clone.lock().await;
+                                                            app_guard.streaming_message = None;
+                                                            app_guard.messages.push(Message {
+                                                                content: format!("Streaming error: {}. Falling back to regular API.", chunk),
+                                                                message_type: MessageType::Error,
+                                                                timestamp: chrono::Utc::now(),
+                                                            });
+                                                            app_guard.is_loading = false;
+                                                            break;
+                                                        }
+                                                        
+                                                        // Only accumulate non-error chunks
+                                                        received_any_data = true;
+                                                        accumulated_response.push_str(&chunk);
+                                                        log_debug(&format!("Accumulated response now: {:?}", accumulated_response));
+                                                        
+                                                        // Update streaming message in real-time
+                                                        {
+                                                            let mut app_guard = app_clone.lock().await;
+                                                            app_guard.streaming_message = Some(accumulated_response.clone());
+                                                            log_debug("Updated streaming_message in app state");
+                                                        }
+                                                    }
+                                                    None => {
+                                                        log_debug("Channel closed - sender has finished");
+                                                        break;
+                                                    }
                                                 }
                                             }
                                             
+                                            log_debug("Channel closed - no more chunks to receive");
                                             log_debug(&format!("Finished receiving chunks. received_any_data: {}, accumulated_response: {:?}", received_any_data, accumulated_response));
                                             
                                             // Finalize the message if we received data
