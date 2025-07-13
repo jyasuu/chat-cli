@@ -143,7 +143,7 @@ impl GeminiClient {
             return Err(anyhow!("API request failed: {}", error_text));
         }
 
-        let (tx, rx) = mpsc::channel::<String>(100);
+        let (tx, rx) = mpsc::channel::<String>(1000);
         
         // Add logging function
         let log_debug = |msg: &str| {
