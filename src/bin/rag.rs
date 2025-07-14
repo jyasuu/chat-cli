@@ -128,6 +128,7 @@ impl GeminiClient {
             .send()
             .await
             .map_err(|e| RagError::ApiError(e.to_string()))?;
+        sleep(time::Duration::from_millis(15_000));
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
@@ -329,6 +330,84 @@ fn jianlai() -> [&'static str; 55]
 sentences
 }
 
+
+pub struct ElementSystem<'a> {
+    pub name: &'a str,
+    pub elements: &'a [(&'a str, &'a [&'a str])],
+}
+
+pub struct NaturalElementsVocabulary<'a> {
+    pub systems: &'a [ElementSystem<'a>],
+    pub universal_terms: &'a [&'a str],
+}
+
+// 中國五行系統
+const WU_XING: &[(&str, &[&str])] = &[
+    ("金", &["礦物", "金屬", "鋒利", "收斂", "變革", "肅殺", "西方", "秋天", "肺", "大腸", "白色"]),
+    ("木", &["樹木", "植物", "生長", "生發", "條達", "東方", "春天", "肝", "膽", "綠色"]),
+    ("水", &["河流", "湖泊", "海洋", "雨", "雪", "流動", "向下", "滋潤", "潛藏", "北方", "冬天", "腎", "膀胱", "黑色"]),
+    ("火", &["火焰", "熱", "光明", "向上", "炎上", "溫熱", "南方", "夏天", "心", "小腸", "紅色"]),
+    ("土", &["大地", "土壤", "山", "穩定", "承載", "化育", "中央", "季節交替", "脾", "胃", "黃色"]),
+];
+
+// 古希臘四元素+以太
+const CLASSICAL_ELEMENTS: &[(&str, &[&str])] = &[
+    ("地", &["土壤", "岩石", "山脈", "穩定", "堅固", "物質", "身體", "乾燥", "寒冷", "黑色", "棕色"]),
+    ("水", &["海洋", "河流", "湖泊", "雨", "液體", "流動", "適應", "情感", "潮濕", "寒冷", "藍色", "綠色"]),
+    ("火", &["火焰", "太陽", "熱", "光", "能量", "轉化", "熱情", "意志", "乾燥", "炎熱", "紅色", "橙色"]),
+    ("氣", &["大氣", "風", "呼吸", "氣體", "心智", "思想", "溝通", "自由", "流動", "濕潤", "炎熱", "黃色", "白色"]),
+    ("以太", &["天空", "虛空", "精微能量", "生命力", "靈性", "宇宙", "第五元素", "超越物質", "紫色", "金色", "透明"]),
+];
+
+// 印度五大元素
+const PANCHA_BHOOTA: &[(&str, &[&str])] = &[
+    ("地", &["固體", "穩定", "支撐", "嗅覺", "骨骼肌肉"]),
+    ("水", &["液體", "流動", "凝聚", "味覺", "體液", "血液", "淋巴"]),
+    ("火", &["熱", "光", "能量", "轉化", "視覺", "新陳代謝"]),
+    ("風", &["氣體", "運動", "觸覺", "呼吸", "神經系統"]),
+    ("空", &["空間", "振動", "容納", "聽覺", "心靈", "意識", "連接萬物"]),
+];
+
+// 第五元素通用概念
+const FIFTH_ELEMENT: &[&str] = &[
+    "精神", "生命能量", "意識", "靈魂", "宇宙本質", "連接力", 
+    "普拉納", "氣", "瑪那", "奧德", "乙太體", "星光體", 
+    "生命力", "意識場", "宇宙意識", "神性"
+];
+
+// 跨體系通用術語
+const UNIVERSAL_TERMS: &[&str] = &[
+    "風", "雨", "雷", "電", "雲", "霧", "霜", "露", "地震", "火山", 
+    "潮汐", "季節", "春", "夏", "秋", "冬", "晝夜", "固體", "液體", 
+    "氣體", "等離子體", "能量", "光", "熱", "輻射", "東", "南", "西", 
+    "北", "中", "早晨", "中午", "下午", "傍晚", "夜晚", "生長", "毀滅", 
+    "創造", "維持", "流動", "平衡", "循環", "轉化", "平衡", "和諧", 
+    "衝突", "相生", "相剋", "循環", "基礎", "根本", "本質", "構成", 
+    "自然哲學", "元素魔法", "鍊金術", "占星術", "風水", "氣功", 
+    "阿育吠陀", "傳統中醫學", "神秘學", "形上學"
+];
+
+// 整合的詞彙系統
+const VOCABULARY_SYSTEMS: &[ElementSystem] = &[
+    ElementSystem {
+        name: "中國五行",
+        elements: WU_XING,
+    },
+    ElementSystem {
+        name: "古希臘元素",
+        elements: CLASSICAL_ELEMENTS,
+    },
+    ElementSystem {
+        name: "印度五大元素",
+        elements: PANCHA_BHOOTA,
+    },
+    ElementSystem {
+        name: "第五元素概念",
+        elements: &[("第五元素", FIFTH_ELEMENT)],
+    }
+];
+
+
 // Example usage
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -362,17 +441,102 @@ async fn main() -> Result<(), Box<dyn Error>> {
         metadata.clone()
     ).await?;
 
-    let sentences = jianlai();
-    for (i, sentence) in sentences.iter().enumerate() {
-        println!("句子 {}: {}", i + 1, sentence);
+    // let sentences = jianlai();
+    // for (i, sentence) in sentences.iter().enumerate() {
+    //     println!("句子 {}: {}", i + 1, sentence);
 
-        metadata.insert("source".to_string(), format!("doc{}",i + 1 +3));
+    //     metadata.insert("source".to_string(), format!("doc{}",i + 1 +3));
+    //     rag.add_document(
+    //         format!("doc{}",i + 1 +3),
+    //         sentence.to_string(),
+    //         metadata.clone()
+    //     ).await?;
+    //     sleep(time::Duration::from_millis(15_000));
+    // }
+
+    // Add VOCABULARY_SYSTEMS to RAG documents
+    let mut doc_counter = 4; // Starting after the initial 3 documents
+    
+    for system in VOCABULARY_SYSTEMS {
+        println!("Adding vocabulary system: {}", system.name);
+        
+        // Add system overview document
+        let mut system_metadata = HashMap::new();
+        system_metadata.insert("source".to_string(), "vocabulary_system".to_string());
+        system_metadata.insert("system_name".to_string(), system.name.to_string());
+        system_metadata.insert("type".to_string(), "system_overview".to_string());
+        
+        let system_overview = format!("Elemental system: {} contains the following elements: {}", 
+            system.name, 
+            system.elements.iter().map(|(name, _)| *name).collect::<Vec<_>>().join(", ")
+        );
+        
         rag.add_document(
-            format!("doc{}",i + 1 +3),
-            sentence.to_string(),
-            metadata.clone()
+            format!("vocab_system_{}", doc_counter),
+            system_overview,
+            system_metadata
         ).await?;
-        sleep(time::Duration::from_millis(15_000));
+        doc_counter += 1;
+        
+        // Add each element and its associated concepts
+        for (element_name, concepts) in system.elements {
+            let mut element_metadata = HashMap::new();
+            element_metadata.insert("source".to_string(), "vocabulary_element".to_string());
+            element_metadata.insert("system_name".to_string(), system.name.to_string());
+            element_metadata.insert("element_name".to_string(), element_name.to_string());
+            element_metadata.insert("type".to_string(), "element_definition".to_string());
+            
+            let element_text = format!("In the {} system, the element {} is associated with: {}", 
+                system.name, 
+                element_name, 
+                concepts.join(", ")
+            );
+            
+            rag.add_document(
+                format!("vocab_element_{}", doc_counter),
+                element_text,
+                element_metadata
+            ).await?;
+            doc_counter += 1;
+            
+            // Add individual concept documents for better granular search
+            for concept in *concepts {
+                let mut concept_metadata = HashMap::new();
+                concept_metadata.insert("source".to_string(), "vocabulary_concept".to_string());
+                concept_metadata.insert("system_name".to_string(), system.name.to_string());
+                concept_metadata.insert("element_name".to_string(), element_name.to_string());
+                concept_metadata.insert("concept".to_string(), concept.to_string());
+                concept_metadata.insert("type".to_string(), "concept_association".to_string());
+                
+                let concept_text = format!("The concept '{}' belongs to the element '{}' in the {} elemental system", 
+                    concept, element_name, system.name);
+                
+                rag.add_document(
+                    format!("vocab_concept_{}", doc_counter),
+                    concept_text,
+                    concept_metadata
+                ).await?;
+                doc_counter += 1;
+            }
+        }
+    }
+    
+    // Add universal terms
+    println!("Adding universal terms...");
+    for (i, term) in UNIVERSAL_TERMS.iter().enumerate() {
+        let mut universal_metadata = HashMap::new();
+        universal_metadata.insert("source".to_string(), "universal_terms".to_string());
+        universal_metadata.insert("term".to_string(), term.to_string());
+        universal_metadata.insert("type".to_string(), "universal_concept".to_string());
+        
+        let universal_text = format!("'{}' is a universal term that appears across multiple elemental and natural philosophy systems", term);
+        
+        rag.add_document(
+            format!("universal_term_{}", doc_counter),
+            universal_text,
+            universal_metadata
+        ).await?;
+        doc_counter += 1;
     }
 
     println!("Added {} documents to knowledge base", rag.document_count());
@@ -392,14 +556,44 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Query the RAG system
-    let query = "你知道泥瓶巷嗎?";
-    let answer = rag.generate_answer(query, 5).await?;
+    // let query = "你知道泥瓶巷嗎?";
+    // let answer = rag.generate_answer(query, 5).await?;
     
-    println!("Query: {}", query);
-    println!("Answer: {}", answer);
+    // println!("Query: {}", query);
+    // println!("Answer: {}", answer);
 
-    // Retrieve similar documents
-    let similar_docs = rag.retrieve("泥瓶巷", 5).await?;
+    // // Retrieve similar documents
+    // let similar_docs = rag.retrieve("泥瓶巷", 5).await?;
+    // println!("\nSimilar documents:");
+    // for result in similar_docs {
+    //     println!("Score: {:.3}, Text: {}", result.score, result.document.text);
+    // }
+    
+    let similar_docs = rag.retrieve("金", 5).await?;
+    println!("\nSimilar documents:");
+    for result in similar_docs {
+        println!("Score: {:.3}, Text: {}", result.score, result.document.text);
+    }
+    
+    let similar_docs = rag.retrieve("木", 5).await?;
+    println!("\nSimilar documents:");
+    for result in similar_docs {
+        println!("Score: {:.3}, Text: {}", result.score, result.document.text);
+    }
+    
+    let similar_docs = rag.retrieve("水", 5).await?;
+    println!("\nSimilar documents:");
+    for result in similar_docs {
+        println!("Score: {:.3}, Text: {}", result.score, result.document.text);
+    }
+    
+    let similar_docs = rag.retrieve("火", 5).await?;
+    println!("\nSimilar documents:");
+    for result in similar_docs {
+        println!("Score: {:.3}, Text: {}", result.score, result.document.text);
+    }
+    
+    let similar_docs = rag.retrieve("土", 5).await?;
     println!("\nSimilar documents:");
     for result in similar_docs {
         println!("Score: {:.3}, Text: {}", result.score, result.document.text);
@@ -431,3 +625,49 @@ async fn main() -> Result<(), Box<dyn Error>> {
 // Score: 0.641, Text: 世世代代都只會燒瓷一事的小鎮匠人，既不敢僭越燒製貢品官窯，也不敢將庫藏瓷器私自販賣給百姓，只得紛紛另謀出路，十四歲的陳平安也被掃地出門，回到泥瓶巷後，繼續守著這棟早已破敗不堪的老宅，差不多是家徒四壁的慘淡場景，便是陳平安想要當敗家子，也無從下手。
 // Score: 0.621, Text: 如今小鎮莫名其妙地失去官窯燒製資格，負責替朝廷監理窯務的督造大人，自己都泥菩薩過江自身難保了，哪裏還顧得上官場同僚的私生子，丟下一些銀錢，就火急火燎趕往京城打點關係。
 // Score: 0.596, Text: 錦衣少年臉色如常，點頭道：“好。”
+
+
+
+
+
+// Query: What is Rust programming language?
+// Answer: Rust is a systems programming language that runs fast and prevents segfaults.
+
+// Similar documents:
+// Score: 0.640, Text: Rust is a systems programming language that runs fast and prevents segfaults.
+// Score: 0.553, Text: The concept '普拉納' belongs to the element '第五元素' in the 第五元素概念 elemental system
+
+// Similar documents:
+// Score: 0.694, Text: The concept '白色' belongs to the element '金' in the 中國五行 elemental system
+// Score: 0.693, Text: The concept '西方' belongs to the element '金' in the 中國五行 elemental system
+// Score: 0.690, Text: The concept '秋天' belongs to the element '金' in the 中國五行 elemental system
+// Score: 0.689, Text: The concept '鋒利' belongs to the element '金' in the 中國五行 elemental system
+// Score: 0.688, Text: In the 中國五行 system, the element 金 is associated with: 礦物, 金屬, 鋒利, 收斂, 變革, 肅殺, 西方, 秋天, 肺, 大腸, 白色
+
+// Similar documents:
+// Score: 0.754, Text: The concept '樹木' belongs to the element '木' in the 中國五行 elemental system
+// Score: 0.729, Text: The concept '植物' belongs to the element '木' in the 中國五行 elemental system
+// Score: 0.718, Text: The concept '肝' belongs to the element '木' in the 中國五行 elemental system
+// Score: 0.717, Text: The concept '綠色' belongs to the element '木' in the 中國五行 elemental system
+// Score: 0.717, Text: In the 中國五行 system, the element 木 is associated with: 樹木, 植物, 生長, 生發, 條達, 東方, 春天, 肝, 膽, 綠色
+
+// Similar documents:
+// Score: 0.712, Text: The concept '流動' belongs to the element '水' in the 中國五行 elemental system
+// Score: 0.710, Text: The concept '滋潤' belongs to the element '水' in the 中國五行 elemental system
+// Score: 0.706, Text: The concept '腎' belongs to the element '水' in the 中國五行 elemental system
+// Score: 0.706, Text: In the 古希臘元素 system, the element 水 is associated with: 海洋, 河流, 湖泊, 雨, 液體, 流動, 適應, 情感, 潮濕, 寒冷, 藍色, 綠色
+// Score: 0.704, Text: The concept '藍色' belongs to the element '水' in the 古希臘元素 elemental system
+
+// Similar documents:
+// Score: 0.707, Text: The concept '炎上' belongs to the element '火' in the 中國五行 elemental system
+// Score: 0.707, Text: The concept '紅色' belongs to the element '火' in the 中國五行 elemental system
+// Score: 0.705, Text: In the 中國五行 system, the element 火 is associated with: 火焰, 熱, 光明, 向上, 炎上, 溫熱, 南方, 夏天, 心, 小腸, 紅色
+// Score: 0.702, Text: The concept '熱' belongs to the element '火' in the 中國五行 elemental system
+// Score: 0.701, Text: The concept '向上' belongs to the element '火' in the 中國五行 elemental system
+
+// Similar documents:
+// Score: 0.746, Text: The concept '土壤' belongs to the element '土' in the 中國五行 elemental system
+// Score: 0.740, Text: The concept '大地' belongs to the element '土' in the 中國五行 elemental system
+// Score: 0.733, Text: The concept '穩定' belongs to the element '土' in the 中國五行 elemental system
+// Score: 0.724, Text: The concept '土壤' belongs to the element '地' in the 古希臘元素 elemental system
+// Score: 0.721, Text: The concept '承載' belongs to the element '土' in the 中國五行 elemental system
