@@ -72,6 +72,7 @@ impl GeminiClient {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn send_message(&self, message: &str) -> Result<String> {
         let url = format!(
             "{}/{}:generateContent?key={}",
@@ -185,14 +186,17 @@ impl GeminiClient {
                             buffer.push_str(&chunk_str);
                             
                             // Process complete SSE events (looking for double newlines)
-                            while let Some(event_end) = buffer.find("\n\n") {
+                            // Handle both \r\n\r\n and \n\n patterns
+                            while let Some(event_end) = buffer.find("\r\n\r\n").or_else(|| buffer.find("\n\n")) {
                                 let event = buffer[..event_end].to_string();
-                                buffer = buffer[event_end + 2..].to_string();
+                                let skip_len = if buffer[event_end..].starts_with("\r\n\r\n") { 4 } else { 2 };
+                                buffer = buffer[event_end + skip_len..].to_string();
                                 
                                 log_debug(&format!("Processing SSE event: {:?}", event));
                                 
                                 // Parse SSE event - look for data lines
                                 for line in event.lines() {
+                                    let line = line.trim(); // Remove any whitespace/carriage returns
                                     if line.starts_with("data: ") {
                                         let json_data = &line[6..]; // Remove "data: " prefix
                                         log_debug(&format!("Found data line: {:?}", json_data));

@@ -1,109 +1,164 @@
 # Gemini Chat CLI
 
-A terminal-based chat interface for Google's Gemini AI using Rust and Ratatui.
+A command-line interface for chatting with Google's Gemini AI model, built in Rust.
 
 ## Features
 
-- Interactive terminal UI with Ratatui
-- Real-time chat with Gemini AI
-- Message history with timestamps
-- Scrollable chat view
-- Text wrapping for long messages
-- Error handling and display
-- Loading indicators
-- Keyboard shortcuts
+- **Interactive Chat**: Real-time conversation with Gemini AI
+- **Streaming Responses**: See responses as they're generated (default mode)
+- **Non-streaming Mode**: Get complete responses at once
+- **Built-in Commands**: Help, clear screen, quit, toggle streaming
+- **Error Handling**: Robust error handling for API issues
+- **Environment Configuration**: Secure API key management
 
-## Prerequisites
+## Setup
 
-- Rust 1.70 or later
-- Gemini API key from Google AI Studio
+1. **Clone and build the project:**
+   ```bash
+   cargo build
+   ```
 
-## Installation
+2. **Set up your API key:**
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your Gemini API key
+   ```
 
-1. Clone the repository or create the project files
-2. Run `cargo build --release`
+3. **Get a Gemini API key:**
+   - Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
+   - Create a new API key
+   - Copy it to your `.env` file
 
 ## Usage
 
-### Set up API Key
-
-Get your Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
-
-### Run the CLI
-
+### Start the chat:
 ```bash
-# Using environment variable
-export GEMINI_API_KEY=your_api_key_here
 cargo run
-
-# Or pass directly as argument
-cargo run -- --api-key your_api_key_here
-
-# Use a different model
-cargo run -- --api-key your_api_key_here --model gemini-1.5-pro
 ```
 
-### Keyboard Controls
+### Available Commands:
+- `/help` or `/h` - Show help message
+- `/clear` or `/cls` - Clear the screen
+- `/quit`, `/exit`, or `/q` - Exit the chat
+- `/stream` - Toggle between streaming and non-streaming mode
 
-- **Normal Mode:**
-  - `i` - Switch to editing mode
-  - `q` - Quit the application
-  - `c` - Clear chat history
-  - `↑/↓` - Scroll through messages
+### Example Session:
+```
+Gemini Chat CLI
+===============
+Type your message and press Enter to send.
+Commands:
+  /help    - Show this help
+  /clear   - Clear the screen
+  /quit    - Exit the chat
+  /stream  - Toggle streaming mode (default: on)
 
-- **Editing Mode:**
-  - `Enter` - Send message
-  - `Esc` - Return to normal mode
-  - `Backspace` - Delete character
-  - Type normally to compose message
+You: Hello! Can you explain what Rust is?
+Gemini: Rust is a systems programming language that focuses on safety, speed, and concurrency...
 
-## Configuration
+You: /stream
+Streaming mode: OFF
 
-You can configure the following options:
+You: What are the main benefits of Rust?
+Gemini: The main benefits of Rust include memory safety, performance, and fearless concurrency...
 
-- `--api-key, -a` - Your Gemini API key (can also use `GEMINI_API_KEY` env var)
-- `--model, -m` - Model to use (default: `gemini-1.5-flash`)
+You: /quit
+Goodbye!
+```
 
-Available models:
-- `gemini-1.5-flash` (default, fast and efficient)
-- `gemini-1.5-pro` (more capable, slower)
-- `gemini-1.0-pro` (older model)
+## Architecture
 
-## Project Structure
+### Core Components:
 
-- `main.rs` - Main application loop and terminal setup
-- `gemini.rs` - Gemini API client implementation
-- `ui.rs` - UI state management and data structures
-- `Cargo.toml` - Dependencies and project configuration
+1. **GeminiClient** (`src/gemini.rs`):
+   - Handles API communication with Google's Gemini service
+   - Supports both streaming and non-streaming responses
+   - Implements proper error handling and response parsing
+
+2. **Main CLI** (`src/main.rs`):
+   - Interactive command-line interface
+   - User input handling and command processing
+   - Response display and formatting
+
+3. **Additional Tools**:
+   - `src/bin/rag.rs` - RAG (Retrieval-Augmented Generation) implementation
+   - `src/bin/sse_client.rs` - Server-Sent Events client for testing
+
+### Key Features:
+
+- **Async/Await**: Built on Tokio for efficient async operations
+- **Streaming Support**: Real-time response streaming using Server-Sent Events
+- **Error Handling**: Comprehensive error handling with anyhow
+- **Environment Config**: Secure API key management with dotenv
 
 ## Dependencies
 
-- `ratatui` - Terminal UI framework
-- `crossterm` - Cross-platform terminal manipulation
 - `tokio` - Async runtime
 - `reqwest` - HTTP client for API calls
-- `serde` - Serialization/deserialization
+- `serde` - JSON serialization/deserialization
 - `anyhow` - Error handling
-- `clap` - Command line argument parsing
-- `chrono` - Date/time handling
-- `textwrap` - Text wrapping utilities
+- `futures` - Stream processing
+- `dotenv` - Environment variable management
+- `crossterm` - Terminal manipulation
 
-## Error Handling
+## Configuration
 
-The application handles various error scenarios:
+The application uses environment variables for configuration:
 
-- Network connectivity issues
-- Invalid API responses
-- API rate limits
-- Authentication errors
-- Terminal display errors
+```env
+GEMINI_API_KEY=your-actual-api-key-here
+```
 
-Errors are displayed in the chat with a red color and "Error" prefix.
+## Development
 
-## Contributing
+### Build:
+```bash
+cargo build
+```
 
-Feel free to submit issues and enhancement requests!
+### Run:
+```bash
+cargo run
+```
+
+### Run specific binaries:
+```bash
+# RAG demo
+cargo run --bin rag
+
+# SSE client test
+cargo run --bin sse_client
+```
+
+## API Integration
+
+The chat CLI integrates with Google's Gemini API using:
+- **Model**: `gemini-2.0-flash-exp` (configurable)
+- **Endpoint**: `https://generativelanguage.googleapis.com/v1beta/models`
+- **Features**: Streaming and non-streaming content generation
+
+### Request Configuration:
+- Temperature: 0.7
+- Top-P: 0.95
+- Top-K: 40
+- Max Output Tokens: 2048
+
+## Troubleshooting
+
+### Common Issues:
+
+1. **API Key Error**:
+   ```
+   GEMINI_API_KEY environment variable not set
+   ```
+   Solution: Copy `.env.example` to `.env` and add your API key.
+
+2. **Build Errors**:
+   Make sure you have Rust installed and run `cargo build`.
+
+3. **Network Issues**:
+   Check your internet connection and API key validity.
 
 ## License
 
-This project is open source and available under the MIT License.
+This project is open source. Feel free to use and modify as needed.
