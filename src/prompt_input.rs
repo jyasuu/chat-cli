@@ -33,18 +33,37 @@ impl PromptInput {
 
     /// Display the fancy input prompt and get user input
     pub fn get_input(&self) -> io::Result<String> {
+        // Draw the input box once
+        self.draw_input_box_static()?;
+        
+        // Use simple input reading
+        let mut input = String::new();
+        print!("│ > ");
+        io::stdout().flush()?;
+        
+        io::stdin().read_line(&mut input)?;
+        
+        // Clean up the input box
+        self.clear_input_box()?;
+        
+        Ok(input.trim().to_string())
+    }
+
+    /// Simple fallback input method
+    pub fn get_input_simple(&self) -> io::Result<String> {
         let mut input = String::new();
         let mut cursor_pos = 0;
 
         // Enable raw mode for better input control
         terminal::enable_raw_mode()?;
 
+        // Save current cursor position
+        execute!(io::stdout(), cursor::SavePosition)?;
+        
+        // Draw initial input box
+        self.draw_input_box(&input, cursor_pos)?;
+
         loop {
-            // Clear screen and draw the input box
-            execute!(io::stdout(), terminal::Clear(ClearType::All), cursor::MoveTo(0, 0))?;
-            
-            self.draw_input_box(&input, cursor_pos)?;
-            
             // Handle input events
             if let Event::Key(key_event) = event::read()? {
                 match key_event {
@@ -54,7 +73,8 @@ impl PromptInput {
                         ..
                     } => {
                         terminal::disable_raw_mode()?;
-                        execute!(io::stdout(), cursor::MoveTo(0, 3))?;
+                        // Move cursor below the input box
+                        execute!(io::stdout(), cursor::MoveTo(0, 4))?;
                         return Ok(input);
                     }
                     KeyEvent {
@@ -135,8 +155,30 @@ impl PromptInput {
                     }
                     _ => {}
                 }
+                
+                // Redraw only the input box area, not the whole screen
+                execute!(io::stdout(), cursor::RestorePosition)?;
+                self.draw_input_box(&input, cursor_pos)?;
             }
         }
+    }
+
+    /// Draw a static input box that doesn't interfere with other output
+    fn draw_input_box_static(&self) -> io::Result<()> {
+        // Top border
+        println!("╭{}╮", "─".repeat(self.width.saturating_sub(2)));
+        
+        // Input line placeholder
+        print!("│ > ");
+        
+        Ok(())
+    }
+
+    /// Clear the input box area
+    fn clear_input_box(&self) -> io::Result<()> {
+        // Bottom border
+        println!("╰{}╯", "─".repeat(self.width.saturating_sub(2)));
+        Ok(())
     }
 
     /// Draw the fancy input box with current input and cursor
