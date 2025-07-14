@@ -1,8 +1,10 @@
 mod gemini;
+mod response_card;
 
 use anyhow::Result;
 use dotenv::dotenv;
 use gemini::GeminiClient;
+use response_card::ResponseCard;
 use std::{
     env,
     io::{self, Write},
@@ -74,39 +76,43 @@ async fn main() -> Result<()> {
         }
         
         // Send message to Gemini
-        print!("Gemini: ");
-        io::stdout().flush()?;
-        
         if streaming_mode {
-            // Streaming response
+            // Streaming response with response card
             match client.send_message_stream(input).await {
                 Ok(mut rx) => {
+                    let card = ResponseCard::new();
                     let mut response_text = String::new();
                     
+                    // Start the response card
+                    card.start_streaming()?;
+                    
                     while let Some(chunk) = rx.recv().await {
-                        print!("{}", chunk);
-                        io::stdout().flush()?;
+                        card.stream_content(&chunk)?;
                         response_text.push_str(&chunk);
                     }
                     
                     if response_text.is_empty() {
-                        println!("No response received");
-                    } else {
-                        println!(); // New line after response
+                        print!("No response received");
                     }
+                    
+                    // End the response card
+                    card.end_streaming()?;
                 }
                 Err(e) => {
-                    println!("Error: {}", e);
+                    let error_card = ResponseCard::with_title("Error");
+                    error_card.display_complete(&format!("Failed to get response: {}", e))?;
                 }
             }
         } else {
-            // Non-streaming response
+            // Non-streaming response with response card
             match client.send_message(input).await {
                 Ok(response) => {
-                    println!("{}", response);
+                    let card = ResponseCard::new();
+                    card.display_complete(&response)?;
                 }
                 Err(e) => {
-                    println!("Error: {}", e);
+                    let error_card = ResponseCard::with_title("Error");
+                    error_card.display_complete(&format!("Failed to get response: {}", e))?;
                 }
             }
         }
