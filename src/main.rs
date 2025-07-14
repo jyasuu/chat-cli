@@ -1,13 +1,22 @@
 mod gemini;
 mod response_card;
+mod prompt_input;
+mod loading_animation;
 
 use anyhow::Result;
 use dotenv::dotenv;
 use gemini::GeminiClient;
 use response_card::ResponseCard;
+use prompt_input::PromptInput;
+use loading_animation::{LoadingAnimation, AnimationStyle, show_loading};
 use std::{
     env,
     io::{self, Write},
+};
+use crossterm::{
+    execute,
+    terminal::{self, ClearType},
+    cursor,
 };
 
 #[tokio::main]
@@ -22,25 +31,20 @@ async fn main() -> Result<()> {
     // Initialize Gemini client
     let client = GeminiClient::new(api_key, "gemini-2.0-flash-exp".to_string());
     
+    // Clear screen and show welcome
+    execute!(io::stdout(), terminal::Clear(ClearType::All), cursor::MoveTo(0, 0))?;
     println!("Gemini Chat CLI");
     println!("===============");
-    println!("Type your message and press Enter to send.");
-    println!("Commands:");
-    println!("  /help    - Show this help");
-    println!("  /clear   - Clear the screen");
-    println!("  /quit    - Exit the chat");
-    println!("  /stream  - Toggle streaming mode (default: on)");
+    println!("Enhanced with fancy input and Docker-style loading animations!");
     println!();
     
     let mut streaming_mode = true;
+    let prompt_input = PromptInput::new().with_width(120);
     
     loop {
-        // Get user input
-        print!("You: ");
-        io::stdout().flush()?;
-        
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+        // Get user input with fancy prompt
+        println!("\n{}", "─".repeat(120));
+        let input = prompt_input.get_input()?;
         let input = input.trim();
         
         if input.is_empty() {
@@ -54,17 +58,27 @@ async fn main() -> Result<()> {
                 break;
             }
             "/help" | "/h" => {
+                execute!(io::stdout(), terminal::Clear(ClearType::All), cursor::MoveTo(0, 0))?;
+                println!("Gemini Chat CLI - Help");
+                println!("======================");
                 println!("Commands:");
                 println!("  /help    - Show this help");
                 println!("  /clear   - Clear the screen");
                 println!("  /quit    - Exit the chat");
-                println!("  /stream  - Toggle streaming mode");
+                println!("  /stream  - Toggle streaming mode (current: {})", if streaming_mode { "ON" } else { "OFF" });
                 println!();
+                println!("Features:");
+                println!("  • Fancy bordered input interface");
+                println!("  • Docker-style loading animations");
+                println!("  • Real-time streaming responses");
+                println!("  • Beautiful response cards");
                 continue;
             }
             "/clear" | "/cls" => {
-                print!("\x1B[2J\x1B[1;1H");
-                io::stdout().flush()?;
+                execute!(io::stdout(), terminal::Clear(ClearType::All), cursor::MoveTo(0, 0))?;
+                println!("Gemini Chat CLI");
+                println!("===============");
+                println!("Screen cleared! Ready for new conversation.");
                 continue;
             }
             "/stream" => {
@@ -75,12 +89,18 @@ async fn main() -> Result<()> {
             _ => {}
         }
         
-        // Send message to Gemini
+        // Send message to Gemini with loading animation
         if streaming_mode {
-            // Streaming response with response card
+            // Streaming response with loading animation
+            let loading = LoadingAnimation::new("Connecting to Gemini AI...")
+                .with_style(AnimationStyle::Docker);
+            let loading_handle = loading.start();
+            
             match client.send_message_stream(input).await {
                 Ok(mut rx) => {
-                    let card = ResponseCard::new();
+                    loading_handle.stop().await;
+                    
+                    let card = ResponseCard::with_title("Gemini Response (Streaming)");
                     let mut response_text = String::new();
                     
                     // Start the response card
@@ -99,15 +119,21 @@ async fn main() -> Result<()> {
                     card.end_streaming()?;
                 }
                 Err(e) => {
+                    loading_handle.stop().await;
                     let error_card = ResponseCard::with_title("Error");
                     error_card.display_complete(&format!("Failed to get response: {}", e))?;
                 }
             }
         } else {
-            // Non-streaming response with response card
-            match client.send_message(input).await {
+            // Non-streaming response with loading animation
+            let response_result = show_loading(
+                "Getting response from Gemini AI...",
+                client.send_message(input)
+            ).await;
+            
+            match response_result {
                 Ok(response) => {
-                    let card = ResponseCard::new();
+                    let card = ResponseCard::with_title("Gemini Response");
                     card.display_complete(&response)?;
                 }
                 Err(e) => {
