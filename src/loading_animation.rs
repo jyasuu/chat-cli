@@ -150,6 +150,65 @@ where
     result
 }
 
+/// Show loading animation in a bordered response box (matches target design)
+pub async fn show_loading_in_response_box<F, T>(future: F) -> T
+where
+    F: std::future::Future<Output = T>,
+{
+    let width: usize = 120;
+    
+    // Draw response box header
+    println!("╭─ Response ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮");
+    print!("│ ");
+    io::stdout().flush().ok();
+    
+    // Show interrupt hint during loading
+    println!();
+    println!("╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯");
+    println!(" ctrl+c to interrupt");
+    
+    // Move cursor back up to the spinner position
+    execute!(io::stdout(), cursor::MoveUp(3), cursor::MoveToColumn(3)).ok();
+    
+    // Start spinner animation
+    let is_running = Arc::new(AtomicBool::new(true));
+    let is_running_clone = Arc::clone(&is_running);
+    
+    let spinner_handle = tokio::spawn(async move {
+        let spinner_chars = ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'];
+        let mut frame = 0;
+        
+        while is_running_clone.load(Ordering::Relaxed) {
+            let spinner_char = spinner_chars[frame % spinner_chars.len()];
+            
+            // Update spinner at current cursor position
+            print!("\r│ {}", spinner_char);
+            io::stdout().flush().ok();
+            
+            tokio::time::sleep(Duration::from_millis(150)).await;
+            frame += 1;
+        }
+    });
+    
+    // Execute the future
+    let result = future.await;
+    
+    // Stop spinner
+    is_running.store(false, Ordering::Relaxed);
+    let _ = spinner_handle.await;
+    
+    // Clear the loading content and interrupt hint
+    print!("\r│ ");
+    println!("{} │", " ".repeat(width.saturating_sub(4))); // Clear the spinner line
+    println!("╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯");
+    println!("{}", " ".repeat(120)); // Clear the interrupt hint line
+    
+    // Move cursor back up to prepare for response content
+    execute!(io::stdout(), cursor::MoveUp(2)).ok();
+    
+    result
+}
+
 /// Docker-style progress steps
 pub struct ProgressSteps {
     steps: Vec<String>,

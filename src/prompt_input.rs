@@ -4,7 +4,7 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     execute,
     style::{Color, Print, ResetColor, SetForegroundColor},
-    terminal::{self, ClearType},
+    terminal::{self},
 };
 
 /// A fancy prompt input interface with bordered input box
@@ -33,18 +33,20 @@ impl PromptInput {
 
     /// Display the fancy input prompt and get user input
     pub fn get_input(&self) -> io::Result<String> {
-        // Draw the input box once
-        self.draw_input_box_static()?;
+        // Draw the complete input box with bottom border and help text BEFORE input
+        self.draw_complete_input_box_with_help()?;
         
-        // Use simple input reading
+        // Move cursor back up to the input line and position after "│ > "
+        execute!(io::stdout(), cursor::MoveUp(3), cursor::MoveToColumn(5))?;
+        
+        // Get input using standard input
         let mut input = String::new();
-        print!("│ > ");
-        io::stdout().flush()?;
-        
         io::stdin().read_line(&mut input)?;
         
-        // Clean up the input box
-        self.clear_input_box()?;
+        // Clear the help text line after input submission
+        execute!(io::stdout(), cursor::MoveDown(1), cursor::MoveToColumn(1))?;
+        println!("{}", " ".repeat(120)); // Clear the help text line
+        execute!(io::stdout(), cursor::MoveUp(1))?; // Move back up
         
         Ok(input.trim().to_string())
     }
@@ -161,6 +163,58 @@ impl PromptInput {
                 self.draw_input_box(&input, cursor_pos)?;
             }
         }
+    }
+
+    /// Draw a complete input box with help text that matches the target design
+    fn draw_complete_input_box_with_help(&self) -> io::Result<()> {
+        let content_width = self.width.saturating_sub(4); // Account for "│ " and " │"
+        
+        // Top border
+        println!("╭{}╮", "─".repeat(self.width.saturating_sub(2)));
+        
+        // Input line with prompt and padding to complete the box
+        let remaining_space = content_width.saturating_sub(2); // Account for "> "
+        println!("│ > {}{} │", " ".repeat(remaining_space), "");
+        
+        // Bottom border
+        println!("╰{}╯", "─".repeat(self.width.saturating_sub(2)));
+        
+        // Help text
+        println!("Type \"/\" for available commands.                                                Uses AI. Verify results.");
+        
+        Ok(())
+    }
+
+    /// Draw a complete input box that matches the target design
+    fn draw_complete_input_box(&self) -> io::Result<()> {
+        let _content_width = self.width.saturating_sub(4); // Account for "│ " and " │"
+        
+        // Top border
+        println!("╭{}╮", "─".repeat(self.width.saturating_sub(2)));
+        
+        // Input line with prompt
+        print!("│ > ");
+        io::stdout().flush()?;
+        
+        Ok(())
+    }
+
+    /// Show help text after input
+    fn show_help_text(&self) -> io::Result<()> {
+        // Calculate padding to align with input box width
+        let padding_needed = self.width.saturating_sub(4); // Account for borders
+        let remaining_space = padding_needed.saturating_sub(2); // Account for "> "
+        
+        // Complete the input line with proper padding and closing border
+        println!("{} │", " ".repeat(remaining_space));
+        
+        // Bottom border
+        println!("╰{}╯", "─".repeat(self.width.saturating_sub(2)));
+        
+        // Help text
+        println!("Type \"/\" for available commands.                                                Uses AI. Verify results.");
+        
+        Ok(())
     }
 
     /// Draw a static input box that doesn't interfere with other output

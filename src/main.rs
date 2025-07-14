@@ -8,7 +8,7 @@ use dotenv::dotenv;
 use gemini::GeminiClient;
 use response_card::ResponseCard;
 use prompt_input::PromptInput;
-use loading_animation::{LoadingAnimation, AnimationStyle, show_loading};
+use loading_animation::{LoadingAnimation, AnimationStyle, show_loading_in_response_box};
 use std::{
     env,
     io::{self, Write},
@@ -91,43 +91,70 @@ async fn main() -> Result<()> {
         
         // Send message to Gemini with loading animation
         if streaming_mode {
-            // Streaming response with loading animation
-            let loading = LoadingAnimation::new("Connecting to Gemini AI...")
-                .with_style(AnimationStyle::Docker);
+            // Use ResponseCard for proper streaming with loading animation
+            let response_card = ResponseCard::with_title("Response");
+            
+            // Show initial loading in response box with interrupt hint
+            response_card.start_streaming()?;
+            
+            // Show interrupt hint during loading
+            println!();
+            println!("╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯");
+            println!(" ctrl+c to interrupt");
+            
+            // Move cursor back up to spinner position
+            execute!(io::stdout(), cursor::MoveUp(3), cursor::MoveToColumn(3))?;
+            
+            // Start spinner for connection
+            let loading = LoadingAnimation::new("Connecting...")
+                .with_style(AnimationStyle::Spinner);
             let loading_handle = loading.start();
             
             match client.send_message_stream(input).await {
                 Ok(mut rx) => {
                     loading_handle.stop().await;
                     
-                    let card = ResponseCard::with_title("Gemini Response (Streaming)");
-                    let mut response_text = String::new();
+                    // Clear the loading line and interrupt hint, start streaming content
+                    print!("\r│ ");
+                    io::stdout().flush()?;
                     
-                    // Start the response card
-                    card.start_streaming()?;
+                    let mut response_text = String::new();
+                    let mut is_first_chunk = true;
                     
                     while let Some(chunk) = rx.recv().await {
-                        card.stream_content(&chunk)?;
+                        if is_first_chunk {
+                            // Clear interrupt hint lines
+                            execute!(io::stdout(), cursor::MoveDown(2))?;
+                            println!("{}", " ".repeat(120)); // Clear the interrupt hint line
+                            execute!(io::stdout(), cursor::MoveUp(3), cursor::MoveToColumn(3))?;
+                            is_first_chunk = false;
+                        }
+                        
+                        response_card.stream_content(&chunk)?;
                         response_text.push_str(&chunk);
                     }
                     
                     if response_text.is_empty() {
-                        print!("No response received");
+                        response_card.stream_content("No response received")?;
                     }
                     
-                    // End the response card
-                    card.end_streaming()?;
+                    // Complete the response box
+                    response_card.end_streaming()?;
                 }
                 Err(e) => {
                     loading_handle.stop().await;
-                    let error_card = ResponseCard::with_title("Error");
-                    error_card.display_complete(&format!("Failed to get response: {}", e))?;
+                    // Clear interrupt hint lines
+                    execute!(io::stdout(), cursor::MoveDown(2))?;
+                    println!("{}", " ".repeat(120)); // Clear the interrupt hint line
+                    execute!(io::stdout(), cursor::MoveUp(3), cursor::MoveToColumn(3))?;
+                    
+                    response_card.stream_content(&format!("Error: Failed to get response: {}", e))?;
+                    response_card.end_streaming()?;
                 }
             }
         } else {
-            // Non-streaming response with loading animation
-            let response_result = show_loading(
-                "Getting response from Gemini AI...",
+            // Non-streaming response with boxed loading animation
+            let response_result = show_loading_in_response_box(
                 client.send_message(input)
             ).await;
             
