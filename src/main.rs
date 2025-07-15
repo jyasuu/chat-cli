@@ -98,7 +98,7 @@ async fn main() -> Result<()> {
             
             // Show interrupt hint during loading
             println!();
-            println!("╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯");
+            println!();
             println!(" ctrl+c to interrupt");
             
             // Move cursor back up to spinner position
