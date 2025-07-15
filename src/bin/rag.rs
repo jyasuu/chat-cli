@@ -268,6 +268,7 @@ fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
 }
 
 
+
 fn jianlai() -> [&'static str; 55]
 {
     let sentences: [&str; 55] = [
@@ -508,8 +509,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 concept_metadata.insert("concept".to_string(), concept.to_string());
                 concept_metadata.insert("type".to_string(), "concept_association".to_string());
                 
-                let concept_text = format!("The concept '{}' belongs to the element '{}' in the {} elemental system", 
-                    concept, element_name, system.name);
+                let concept_text = format!("{}", concept);
                 
                 rag.add_document(
                     format!("vocab_concept_{}", doc_counter),
@@ -569,31 +569,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
     //     println!("Score: {:.3}, Text: {}", result.score, result.document.text);
     // }
     
-    let similar_docs = rag.retrieve("金", 5).await?;
+    let similar_docs = rag.retrieve("金", 100).await?;
     println!("\nSimilar documents:");
     for result in similar_docs {
         println!("Score: {:.3}, Text: {}", result.score, result.document.text);
     }
     
-    let similar_docs = rag.retrieve("木", 5).await?;
+    let similar_docs = rag.retrieve("木", 100).await?;
     println!("\nSimilar documents:");
     for result in similar_docs {
         println!("Score: {:.3}, Text: {}", result.score, result.document.text);
     }
     
-    let similar_docs = rag.retrieve("水", 5).await?;
+    let similar_docs = rag.retrieve("水", 100).await?;
     println!("\nSimilar documents:");
     for result in similar_docs {
         println!("Score: {:.3}, Text: {}", result.score, result.document.text);
     }
     
-    let similar_docs = rag.retrieve("火", 5).await?;
+    let similar_docs = rag.retrieve("火", 100).await?;
     println!("\nSimilar documents:");
     for result in similar_docs {
         println!("Score: {:.3}, Text: {}", result.score, result.document.text);
     }
     
-    let similar_docs = rag.retrieve("土", 5).await?;
+    let similar_docs = rag.retrieve("土", 100).await?;
     println!("\nSimilar documents:");
     for result in similar_docs {
         println!("Score: {:.3}, Text: {}", result.score, result.document.text);
@@ -671,3 +671,516 @@ async fn main() -> Result<(), Box<dyn Error>> {
 // Score: 0.733, Text: The concept '穩定' belongs to the element '土' in the 中國五行 elemental system
 // Score: 0.724, Text: The concept '土壤' belongs to the element '地' in the 古希臘元素 elemental system
 // Score: 0.721, Text: The concept '承載' belongs to the element '土' in the 中國五行 elemental system
+
+
+
+
+// Similar documents:
+// Score: 0.837, Text: 金色
+// Score: 0.757, Text: 金屬
+// Score: 0.688, Text: In the 中國五行 system, the element 金 is associated with: 礦物, 金屬, 鋒利, 收斂, 變革, 肅殺, 西方, 秋天, 肺, 大腸, 白色
+// Score: 0.683, Text: 心
+// Score: 0.677, Text: 黃色
+// Score: 0.677, Text: 黃色
+// Score: 0.671, Text: 光
+// Score: 0.671, Text: 光
+// Score: 0.669, Text: 山
+// Score: 0.659, Text: 向上
+// Score: 0.656, Text: 雨
+// Score: 0.656, Text: 雨
+// Score: 0.656, Text: 太陽
+// Score: 0.654, Text: 自由
+// Score: 0.652, Text: 白色
+// Score: 0.652, Text: 白色
+// Score: 0.651, Text: 黑色
+// Score: 0.651, Text: 黑色
+// Score: 0.651, Text: 紫色
+// Score: 0.650, Text: 冬天
+// Score: 0.648, Text: 腎
+// Score: 0.644, Text: 雪
+// Score: 0.644, Text: 氣
+// Score: 0.644, Text: 熱情
+// Score: 0.644, Text: 秋天
+// Score: 0.642, Text: 光明
+// Score: 0.641, Text: 中央
+// Score: 0.641, Text: 溫熱
+// Score: 0.641, Text: 鋒利
+// Score: 0.641, Text: 火焰
+// Score: 0.641, Text: 火焰
+// Score: 0.641, Text: 向下
+// Score: 0.640, Text: 神性
+// Score: 0.640, Text: 紅色
+// Score: 0.640, Text: 紅色
+// Score: 0.640, Text: 季節交替
+// Score: 0.638, Text: 西方
+// Score: 0.638, Text: 橙色
+// Score: 0.638, Text: 潛藏
+// Score: 0.637, Text: 穩定
+// Score: 0.637, Text: 穩定
+// Score: 0.637, Text: 穩定
+// Score: 0.637, Text: 熱
+// Score: 0.637, Text: 熱
+// Score: 0.637, Text: 熱
+// Score: 0.636, Text: 綠色
+// Score: 0.636, Text: 綠色
+// Score: 0.635, Text: 大地
+// Score: 0.633, Text: Elemental system: 中國五行 contains the following elements: 金, 木, 水, 火, 土
+// Score: 0.631, Text: 寒冷
+// Score: 0.631, Text: 寒冷
+// Score: 0.631, Text: 膽
+// Score: 0.631, Text: 固體
+// Score: 0.631, Text: 肝
+// Score: 0.631, Text: 流動
+// Score: 0.631, Text: 流動
+// Score: 0.631, Text: 流動
+// Score: 0.631, Text: 流動
+// Score: 0.630, Text: 藍色
+// Score: 0.629, Text: 棕色
+// Score: 0.629, Text: 肅殺
+// Score: 0.628, Text: 透明
+// Score: 0.628, Text: 意志
+// Score: 0.628, Text: 堅固
+// Score: 0.628, Text: 生發
+// Score: 0.627, Text: 北方
+// Score: 0.627, Text: 視覺
+// Score: 0.626, Text: 思想
+// Score: 0.626, Text: 胃
+// Score: 0.626, Text: 情感
+// Score: 0.626, Text: 心智
+// Score: 0.626, Text: 宇宙
+// Score: 0.625, Text: 夏天
+// Score: 0.625, Text: 物質
+// Score: 0.624, Text: 風
+// Score: 0.623, Text: 心靈
+// Score: 0.623, Text: 滋潤
+// Score: 0.622, Text: 容納
+// Score: 0.622, Text: 承載
+// Score: 0.621, Text: 海洋
+// Score: 0.621, Text: 海洋
+// Score: 0.621, Text: 炎熱
+// Score: 0.621, Text: 炎熱
+// Score: 0.620, Text: 生長
+// Score: 0.619, Text: 支撐
+// Score: 0.619, Text: 連接萬物
+// Score: 0.618, Text: 意識
+// Score: 0.618, Text: 意識
+// Score: 0.618, Text: 天空
+// Score: 0.618, Text: 凝聚
+// Score: 0.618, Text: 空間
+// Score: 0.617, Text: 南方
+// Score: 0.617, Text: 轉化
+// Score: 0.617, Text: 轉化
+// Score: 0.617, Text: 精神
+// Score: 0.616, Text: 奧德
+// Score: 0.616, Text: 味覺
+// Score: 0.616, Text: 春天
+// Score: 0.614, Text: 運動
+// Score: 0.614, Text: 星光體
+
+// Similar documents:
+// Score: 0.789, Text: 樹木
+// Score: 0.717, Text: In the 中國五行 system, the element 木 is associated with: 樹木, 植物, 生長, 生發, 條達, 東方, 春天, 肝, 膽, 綠色
+// Score: 0.710, Text: 植物
+// Score: 0.698, Text: 雪
+// Score: 0.686, Text: 光
+// Score: 0.686, Text: 光
+// Score: 0.682, Text: 心
+// Score: 0.681, Text: 冬天
+// Score: 0.681, Text: 氣
+// Score: 0.674, Text: 綠色
+// Score: 0.674, Text: 綠色
+// Score: 0.673, Text: 向下
+// Score: 0.672, Text: 山
+// Score: 0.672, Text: 向上
+// Score: 0.671, Text: 金色
+// Score: 0.670, Text: 黑色
+// Score: 0.670, Text: 黑色
+// Score: 0.669, Text: 肝
+// Score: 0.667, Text: 脾
+// Score: 0.666, Text: 空間
+// Score: 0.665, Text: 紅色
+// Score: 0.665, Text: 紅色
+// Score: 0.663, Text: 金屬
+// Score: 0.663, Text: 中央
+// Score: 0.662, Text: 雨
+// Score: 0.662, Text: 雨
+// Score: 0.660, Text: 秋天
+// Score: 0.656, Text: 自由
+// Score: 0.656, Text: 火焰
+// Score: 0.656, Text: 火焰
+// Score: 0.656, Text: 白色
+// Score: 0.656, Text: 白色
+// Score: 0.655, Text: 大地
+// Score: 0.655, Text: 宇宙
+// Score: 0.654, Text: 胃
+// Score: 0.654, Text: 意志
+// Score: 0.652, Text: 物質
+// Score: 0.652, Text: 生長
+// Score: 0.652, Text: 天空
+// Score: 0.652, Text: 透明
+// Score: 0.651, Text: 呼吸
+// Score: 0.651, Text: 呼吸
+// Score: 0.651, Text: 橙色
+// Score: 0.650, Text: 夏天
+// Score: 0.650, Text: 太陽
+// Score: 0.650, Text: 生發
+// Score: 0.650, Text: 棕色
+// Score: 0.650, Text: 岩石
+// Score: 0.649, Text: 藍色
+// Score: 0.649, Text: 支撐
+// Score: 0.649, Text: 心智
+// Score: 0.648, Text: 季節交替
+// Score: 0.647, Text: 熱
+// Score: 0.647, Text: 熱
+// Score: 0.647, Text: 熱
+// Score: 0.647, Text: 大腸
+// Score: 0.646, Text: 紫色
+// Score: 0.646, Text: 運動
+// Score: 0.646, Text: 北方
+// Score: 0.645, Text: 承載
+// Score: 0.645, Text: 熱情
+// Score: 0.645, Text: 精神
+// Score: 0.645, Text: 黃色
+// Score: 0.645, Text: 黃色
+// Score: 0.644, Text: 潛藏
+// Score: 0.644, Text: 腎
+// Score: 0.644, Text: 固體
+// Score: 0.644, Text: 潮濕
+// Score: 0.643, Text: 溝通
+// Score: 0.641, Text: 風
+// Score: 0.641, Text: 情感
+// Score: 0.641, Text: 流動
+// Score: 0.641, Text: 流動
+// Score: 0.641, Text: 流動
+// Score: 0.641, Text: 流動
+// Score: 0.640, Text: 思想
+// Score: 0.640, Text: 溫熱
+// Score: 0.639, Text: 乾燥
+// Score: 0.639, Text: 乾燥
+// Score: 0.639, Text: 西方
+// Score: 0.639, Text: 海洋
+// Score: 0.639, Text: 海洋
+// Score: 0.638, Text: Elemental system: 中國五行 contains the following elements: 金, 木, 水, 火, 土
+// Score: 0.638, Text: 滋潤
+// Score: 0.638, Text: 視覺
+// Score: 0.637, Text: 南方
+// Score: 0.637, Text: 骨骼肌肉
+// Score: 0.637, Text: 膽
+// Score: 0.637, Text: 變革
+// Score: 0.636, Text: 心靈
+// Score: 0.636, Text: 堅固
+// Score: 0.636, Text: 血液
+// Score: 0.635, Text: 液體
+// Score: 0.635, Text: 液體
+// Score: 0.634, Text: 鋒利
+// Score: 0.634, Text: 容納
+// Score: 0.633, Text: 身體
+// Score: 0.633, Text: 春天
+// Score: 0.632, Text: 意識
+// Score: 0.632, Text: 意識
+
+// Similar documents:
+// Score: 0.711, Text: 液體
+// Score: 0.711, Text: 液體
+// Score: 0.706, Text: 雨
+// Score: 0.706, Text: 雨
+// Score: 0.706, Text: In the 古希臘元素 system, the element 水 is associated with: 海洋, 河流, 湖泊, 雨, 液體, 流動, 適應, 情感, 潮濕, 寒冷, 藍色, 綠色
+// Score: 0.704, Text: In the 中國五行 system, the element 水 is associated with: 河流, 湖泊, 海洋, 雨, 雪, 流動, 向下, 滋潤, 潛藏, 北方, 冬天, 腎, 膀胱, 黑色
+// Score: 0.696, Text: 雪
+// Score: 0.688, Text: 濕潤
+// Score: 0.686, Text: In the 印度五大元素 system, the element 水 is associated with: 液體, 流動, 凝聚, 味覺, 體液, 血液, 淋巴
+// Score: 0.686, Text: 河流
+// Score: 0.686, Text: 河流
+// Score: 0.685, Text: 山
+// Score: 0.685, Text: 海洋
+// Score: 0.685, Text: 海洋
+// Score: 0.682, Text: 腎
+// Score: 0.679, Text: 流動
+// Score: 0.679, Text: 流動
+// Score: 0.679, Text: 流動
+// Score: 0.679, Text: 流動
+// Score: 0.679, Text: 透明
+// Score: 0.676, Text: 視覺
+// Score: 0.676, Text: 心
+// Score: 0.676, Text: 滋潤
+// Score: 0.676, Text: 光
+// Score: 0.676, Text: 光
+// Score: 0.675, Text: 潮濕
+// Score: 0.675, Text: 體液
+// Score: 0.674, Text: 風
+// Score: 0.674, Text: 呼吸
+// Score: 0.674, Text: 呼吸
+// Score: 0.673, Text: 湖泊
+// Score: 0.673, Text: 湖泊
+// Score: 0.667, Text: 氣
+// Score: 0.667, Text: 物質
+// Score: 0.666, Text: 天空
+// Score: 0.664, Text: 藍色
+// Score: 0.661, Text: 紅色
+// Score: 0.661, Text: 紅色
+// Score: 0.660, Text: 熱
+// Score: 0.660, Text: 熱
+// Score: 0.660, Text: 熱
+// Score: 0.659, Text: 思想
+// Score: 0.659, Text: 空間
+// Score: 0.658, Text: 樹木
+// Score: 0.657, Text: 潛藏
+// Score: 0.657, Text: 精神
+// Score: 0.657, Text: 意識
+// Score: 0.657, Text: 意識
+// Score: 0.656, Text: 植物
+// Score: 0.656, Text: 味覺
+// Score: 0.656, Text: 溫熱
+// Score: 0.655, Text: 向上
+// Score: 0.651, Text: 聽覺
+// Score: 0.651, Text: 意志
+// Score: 0.651, Text: 黑色
+// Score: 0.651, Text: 黑色
+// Score: 0.651, Text: 自由
+// Score: 0.650, Text: 向下
+// Score: 0.649, Text: 岩石
+// Score: 0.649, Text: 脾
+// Score: 0.649, Text: 生命力
+// Score: 0.649, Text: 生命力
+// Score: 0.648, Text: 宇宙
+// Score: 0.648, Text: 容納
+// Score: 0.648, Text: 金色
+// Score: 0.647, Text: 綠色
+// Score: 0.647, Text: 綠色
+// Score: 0.646, Text: 振動
+// Score: 0.646, Text: 運動
+// Score: 0.645, Text: 心靈
+// Score: 0.645, Text: 胃
+// Score: 0.645, Text: 寒冷
+// Score: 0.645, Text: 寒冷
+// Score: 0.644, Text: 身體
+// Score: 0.644, Text: 穩定
+// Score: 0.644, Text: 穩定
+// Score: 0.644, Text: 穩定
+// Score: 0.644, Text: 火焰
+// Score: 0.644, Text: 火焰
+// Score: 0.643, Text: 凝聚
+// Score: 0.643, Text: 生命能量
+// Score: 0.643, Text: 太陽
+// Score: 0.642, Text: 能量
+// Score: 0.642, Text: 能量
+// Score: 0.642, Text: 支撐
+// Score: 0.642, Text: 乾燥
+// Score: 0.642, Text: 乾燥
+// Score: 0.641, Text: 收斂
+// Score: 0.640, Text: 春天
+// Score: 0.639, Text: 山脈
+// Score: 0.638, Text: 秋天
+// Score: 0.638, Text: 金屬
+// Score: 0.638, Text: '液體' is a universal term that appears across multiple elemental and natural philosophy systems
+// Score: 0.638, Text: 肝
+// Score: 0.637, Text: 土壤
+// Score: 0.637, Text: 土壤
+// Score: 0.637, Text: 礦物
+// Score: 0.637, Text: 熱情
+// Score: 0.637, Text: 橙色
+// Score: 0.635, Text: 黃色
+
+// Similar documents:
+// Score: 0.798, Text: 火焰
+// Score: 0.798, Text: 火焰
+// Score: 0.711, Text: 炎上
+// Score: 0.709, Text: 熱
+// Score: 0.709, Text: 熱
+// Score: 0.709, Text: 熱
+// Score: 0.705, Text: In the 中國五行 system, the element 火 is associated with: 火焰, 熱, 光明, 向上, 炎上, 溫熱, 南方, 夏天, 心, 小腸, 紅色
+// Score: 0.702, Text: 炎熱
+// Score: 0.702, Text: 炎熱
+// Score: 0.700, Text: 熱情
+// Score: 0.698, Text: In the 古希臘元素 system, the element 火 is associated with: 火焰, 太陽, 熱, 光, 能量, 轉化, 熱情, 意志, 乾燥, 炎熱, 紅色, 橙色
+// Score: 0.687, Text: 紅色
+// Score: 0.687, Text: 紅色
+// Score: 0.683, Text: 光
+// Score: 0.683, Text: 光
+// Score: 0.674, Text: 氣
+// Score: 0.673, Text: 自由
+// Score: 0.670, Text: In the 印度五大元素 system, the element 火 is associated with: 熱, 光, 能量, 轉化, 視覺, 新陳代謝
+// Score: 0.669, Text: '火山' is a universal term that appears across multiple elemental and natural philosophy systems
+// Score: 0.666, Text: 雨
+// Score: 0.666, Text: 雨
+// Score: 0.665, Text: 太陽
+// Score: 0.664, Text: 宇宙
+// Score: 0.663, Text: 冬天
+// Score: 0.663, Text: 山
+// Score: 0.663, Text: 溫熱
+// Score: 0.661, Text: 向上
+// Score: 0.660, Text: 風
+// Score: 0.659, Text: 黑色
+// Score: 0.659, Text: 黑色
+// Score: 0.659, Text: 雪
+// Score: 0.658, Text: 大地
+// Score: 0.657, Text: 意志
+// Score: 0.657, Text: 向下
+// Score: 0.656, Text: 心
+// Score: 0.655, Text: 呼吸
+// Score: 0.655, Text: 呼吸
+// Score: 0.653, Text: 金色
+// Score: 0.652, Text: 肝
+// Score: 0.652, Text: 鋒利
+// Score: 0.652, Text: 光明
+// Score: 0.651, Text: 橙色
+// Score: 0.649, Text: 中央
+// Score: 0.648, Text: 夏天
+// Score: 0.645, Text: 運動
+// Score: 0.645, Text: 秋天
+// Score: 0.644, Text: 寒冷
+// Score: 0.644, Text: 寒冷
+// Score: 0.643, Text: 胃
+// Score: 0.643, Text: 潛藏
+// Score: 0.642, Text: 北方
+// Score: 0.642, Text: 心智
+// Score: 0.641, Text: 空間
+// Score: 0.641, Text: 黃色
+// Score: 0.641, Text: 黃色
+// Score: 0.640, Text: 大腸
+// Score: 0.640, Text: 思想
+// Score: 0.640, Text: 穩定
+// Score: 0.640, Text: 穩定
+// Score: 0.640, Text: 穩定
+// Score: 0.640, Text: 情感
+// Score: 0.639, Text: 生發
+// Score: 0.639, Text: 春天
+// Score: 0.639, Text: 植物
+// Score: 0.638, Text: 能量
+// Score: 0.638, Text: 能量
+// Score: 0.638, Text: 透明
+// Score: 0.638, Text: 生命能量
+// Score: 0.638, Text: 生命力
+// Score: 0.638, Text: 生命力
+// Score: 0.638, Text: 白色
+// Score: 0.638, Text: 白色
+// Score: 0.637, Text: 肅殺
+// Score: 0.637, Text: 精神
+// Score: 0.637, Text: 承載
+// Score: 0.637, Text: 流動
+// Score: 0.637, Text: 流動
+// Score: 0.637, Text: 流動
+// Score: 0.637, Text: 流動
+// Score: 0.635, Text: 紫色
+// Score: 0.635, Text: 變革
+// Score: 0.634, Text: 容納
+// Score: 0.634, Text: 轉化
+// Score: 0.634, Text: 轉化
+// Score: 0.634, Text: 溝通
+// Score: 0.634, Text: 視覺
+// Score: 0.632, Text: 物質
+// Score: 0.632, Text: 天空
+// Score: 0.632, Text: 岩石
+// Score: 0.632, Text: 河流
+// Score: 0.632, Text: 河流
+// Score: 0.632, Text: 東方
+// Score: 0.632, Text: 腎
+// Score: 0.630, Text: 濕潤
+// Score: 0.630, Text: 棕色
+// Score: 0.630, Text: 膽
+// Score: 0.630, Text: 南方
+// Score: 0.629, Text: 西方
+// Score: 0.629, Text: 身體
+// Score: 0.629, Text: 肺
+
+// Similar documents:
+// Score: 0.866, Text: 土壤
+// Score: 0.866, Text: 土壤
+// Score: 0.757, Text: 大地
+// Score: 0.698, Text: In the 中國五行 system, the element 土 is associated with: 大地, 土壤, 山, 穩定, 承載, 化育, 中央, 季節交替, 脾, 胃, 黃色
+// Score: 0.691, Text: 棕色
+// Score: 0.677, Text: 中央
+// Score: 0.676, Text: 固體
+// Score: 0.676, Text: 山
+// Score: 0.676, Text: 太陽
+// Score: 0.673, Text: 橙色
+// Score: 0.669, Text: 脾
+// Score: 0.668, Text: 溫熱
+// Score: 0.668, Text: 穩定
+// Score: 0.668, Text: 穩定
+// Score: 0.668, Text: 穩定
+// Score: 0.665, Text: 大氣
+// Score: 0.665, Text: 氣
+// Score: 0.664, Text: 熱
+// Score: 0.664, Text: 熱
+// Score: 0.664, Text: 熱
+// Score: 0.664, Text: 雪
+// Score: 0.663, Text: 熱情
+// Score: 0.662, Text: 膽
+// Score: 0.661, Text: 白色
+// Score: 0.661, Text: 白色
+// Score: 0.660, Text: 心
+// Score: 0.660, Text: 濕潤
+// Score: 0.660, Text: 條達
+// Score: 0.660, Text: 向下
+// Score: 0.659, Text: 意志
+// Score: 0.659, Text: 胃
+// Score: 0.659, Text: 物質
+// Score: 0.659, Text: 精神
+// Score: 0.658, Text: 光
+// Score: 0.658, Text: 光
+// Score: 0.658, Text: 東方
+// Score: 0.658, Text: 冬天
+// Score: 0.658, Text: 轉化
+// Score: 0.658, Text: 轉化
+// Score: 0.657, Text: In the 古希臘元素 system, the element 地 is associated with: 土壤, 岩石, 山脈, 穩定, 堅固, 物質, 身體, 乾燥, 寒冷, 黑色, 棕色
+// Score: 0.657, Text: 大腸
+// Score: 0.655, Text: 紅色
+// Score: 0.655, Text: 紅色
+// Score: 0.655, Text: 乾燥
+// Score: 0.655, Text: 乾燥
+// Score: 0.654, Text: 黃色
+// Score: 0.654, Text: 黃色
+// Score: 0.654, Text: 黑色
+// Score: 0.654, Text: 黑色
+// Score: 0.654, Text: 承載
+// Score: 0.653, Text: 堅固
+// Score: 0.652, Text: 肝
+// Score: 0.652, Text: 身體
+// Score: 0.652, Text: 情感
+// Score: 0.651, Text: 火焰
+// Score: 0.651, Text: 火焰
+// Score: 0.651, Text: 金色
+// Score: 0.651, Text: 風
+// Score: 0.650, Text: 北方
+// Score: 0.650, Text: 潛藏
+// Score: 0.650, Text: 意識場
+// Score: 0.650, Text: 潮濕
+// Score: 0.649, Text: 凝聚
+// Score: 0.649, Text: 炎熱
+// Score: 0.649, Text: 炎熱
+// Score: 0.649, Text: 宇宙
+// Score: 0.649, Text: 樹木
+// Score: 0.648, Text: 天空
+// Score: 0.648, Text: 心智
+// Score: 0.648, Text: 運動
+// Score: 0.648, Text: 星光體
+// Score: 0.647, Text: 自由
+// Score: 0.647, Text: 滋潤
+// Score: 0.647, Text: 岩石
+// Score: 0.647, Text: 生命力
+// Score: 0.647, Text: 生命力
+// Score: 0.647, Text: 透明
+// Score: 0.647, Text: 紫色
+// Score: 0.646, Text: 腎
+// Score: 0.646, Text: 向上
+// Score: 0.645, Text: 秋天
+// Score: 0.644, Text: 意識
+// Score: 0.644, Text: 意識
+// Score: 0.643, Text: 藍色
+// Score: 0.642, Text: 寒冷
+// Score: 0.642, Text: 寒冷
+// Score: 0.642, Text: 液體
+// Score: 0.642, Text: 液體
+// Score: 0.642, Text: 振動
+// Score: 0.642, Text: 流動
+// Score: 0.642, Text: 流動
+// Score: 0.642, Text: 流動
+// Score: 0.642, Text: 流動
+// Score: 0.642, Text: 生命能量
+// Score: 0.641, Text: 雨
+// Score: 0.641, Text: 雨
+// Score: 0.641, Text: 金屬
+// Score: 0.641, Text: 春天
+// Score: 0.640, Text: 空間
+// Score: 0.640, Text: 肅殺
