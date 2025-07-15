@@ -43,7 +43,6 @@ async fn main() -> Result<()> {
     
     loop {
         // Get user input with fancy prompt
-        println!("\n{}", "─".repeat(120));
         let input = prompt_input.get_input()?;
         let input = input.trim();
         
