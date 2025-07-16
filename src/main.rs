@@ -1,4 +1,5 @@
 mod gemini;
+mod openai;
 mod response_card;
 mod prompt_input;
 mod loading_animation;
@@ -7,6 +8,7 @@ mod function_calling;
 use anyhow::Result;
 use dotenv::dotenv;
 use gemini::GeminiClient;
+use openai::OpenAIClient;
 use response_card::ResponseCard;
 use prompt_input::PromptInput;
 use loading_animation::{LoadingAnimation, AnimationStyle, show_loading_in_response_box};
@@ -22,37 +24,128 @@ use crossterm::{
     cursor,
 };
 
+// Enum to handle different client types
+enum ChatClient {
+    Gemini(GeminiClient),
+    OpenAI(OpenAIClient),
+}
+
+impl ChatClient {
+    fn add_user_message(&mut self, message: &str) {
+        match self {
+            ChatClient::Gemini(client) => client.add_user_message(message),
+            ChatClient::OpenAI(client) => client.add_user_message(message),
+        }
+    }
+
+    fn add_function_response(&mut self, function_response: &function_calling::FunctionResponse) {
+        match self {
+            ChatClient::Gemini(client) => client.add_function_response(function_response),
+            ChatClient::OpenAI(client) => client.add_function_response(function_response),
+        }
+    }
+
+    fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>) {
+        match self {
+            ChatClient::Gemini(client) => client.add_model_response(response, function_call),
+            ChatClient::OpenAI(client) => {
+                // Convert function call format for OpenAI
+                let tool_calls = function_call.map(|fc| {
+                    vec![openai::ToolCall {
+                        id: format!("call_{}", chrono::Utc::now().timestamp_millis()),
+                        call_type: "function".to_string(),
+                        function: openai::FunctionCall {
+                            name: fc.get("name").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
+                            arguments: fc.get("args").map(|v| v.to_string()).unwrap_or_default(),
+                        },
+                    }]
+                });
+                client.add_model_response(response, tool_calls);
+            }
+        }
+    }
+
+    async fn send_message_stream(&self, message: &str) -> Result<tokio::sync::mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+        match self {
+            ChatClient::Gemini(client) => client.send_message_stream(message).await,
+            ChatClient::OpenAI(client) => client.send_message_stream(message).await,
+        }
+    }
+
+    #[allow(dead_code)]
+    async fn send_message(&self, message: &str) -> Result<String> {
+        match self {
+            ChatClient::Gemini(client) => client.send_message(message).await,
+            ChatClient::OpenAI(client) => client.send_message(message).await,
+        }
+    }
+
+    fn clear_conversation(&mut self) {
+        match self {
+            ChatClient::Gemini(client) => client.clear_conversation(),
+            ChatClient::OpenAI(client) => client.clear_conversation(),
+        }
+    }
+
+    fn client_name(&self) -> &str {
+        match self {
+            ChatClient::Gemini(_) => "Gemini",
+            ChatClient::OpenAI(_) => "OpenAI",
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // Load environment variables
     dotenv().ok();
     
-    // Get API key from environment
-    let api_key = env::var("GEMINI_API_KEY")
-        .expect("GEMINI_API_KEY environment variable not set. Please copy .env.example to .env and set your API key.");
-    
-    // Initialize Gemini client
-    let mut client = GeminiClient::new(api_key, "gemini-2.0-flash-exp".to_string());
-    
-    // Load system prompt from markdown file
-    match fs::read_to_string("system_prompt.md") {
-        Ok(system_prompt) => {
-            client.load_system_prompt(&system_prompt)?;
+    // Determine which client to use based on environment variables
+    let mut client = if let Ok(openai_key) = env::var("OPENAI_API_KEY") {
+        // Check if user wants to use OpenAI specifically
+        let model = env::var("OPENAI_MODEL").unwrap_or_else(|_| "gpt-4".to_string());
+        let base_url = env::var("OPENAI_BASE_URL").unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
+        
+        let mut openai_client = OpenAIClient::new(openai_key, model).with_base_url(base_url);
+        
+        // Load system prompt
+        if let Ok(system_prompt) = fs::read_to_string("system_prompt.md") {
+            openai_client.load_system_prompt(&system_prompt)?;
             println!("System prompt loaded from system_prompt.md");
-        }
-        Err(_) => {
+        } else {
             println!("No system_prompt.md found, continuing without system prompt");
         }
-    }
+        
+        ChatClient::OpenAI(openai_client)
+    } else if let Ok(gemini_key) = env::var("GEMINI_API_KEY") {
+        let model = env::var("GEMINI_MODEL").unwrap_or_else(|_| "gemini-2.0-flash-exp".to_string());
+        let mut gemini_client = GeminiClient::new(gemini_key, model);
+        
+        // Load system prompt
+        if let Ok(system_prompt) = fs::read_to_string("system_prompt.md") {
+            gemini_client.load_system_prompt(&system_prompt)?;
+            println!("System prompt loaded from system_prompt.md");
+        } else {
+            println!("No system_prompt.md found, continuing without system prompt");
+        }
+        
+        ChatClient::Gemini(gemini_client)
+    } else {
+        return Err(anyhow::anyhow!(
+            "No API key found. Please set either OPENAI_API_KEY or GEMINI_API_KEY environment variable.\n\
+             You can also set OPENAI_MODEL, GEMINI_MODEL, and OPENAI_BASE_URL for customization."
+        ));
+    };
     
     // Initialize function executor
     let function_executor = FunctionExecutor::new();
     
     // Clear screen and show welcome
     execute!(io::stdout(), terminal::Clear(ClearType::All), cursor::MoveTo(0, 0))?;
-    println!("Gemini Chat CLI");
+    println!("{} Chat CLI", client.client_name());
     println!("===============");
     println!("Enhanced with fancy input and Docker-style loading animations!");
+    println!("Using: {}", client.client_name());
     println!();
     
     let mut streaming_mode = true;
@@ -75,24 +168,27 @@ async fn main() -> Result<()> {
             }
             "/help" | "/h" => {
                 execute!(io::stdout(), terminal::Clear(ClearType::All), cursor::MoveTo(0, 0))?;
-                println!("Gemini Chat CLI - Help");
+                println!("{} Chat CLI - Help", client.client_name());
                 println!("======================");
                 println!("Commands:");
                 println!("  /help    - Show this help");
                 println!("  /clear   - Clear the screen");
                 println!("  /quit    - Exit the chat");
                 println!("  /stream  - Toggle streaming mode (current: {})", if streaming_mode { "ON" } else { "OFF" });
+                println!("  /switch  - Clear conversation history");
                 println!();
                 println!("Features:");
-                println!("  • Fancy bordered input interface");
-                println!("  • Docker-style loading animations");
-                println!("  • Real-time streaming responses");
-                println!("  • Beautiful response cards");
+                println!("  * Fancy bordered input interface");
+                println!("  * Docker-style loading animations");
+                println!("  * Real-time streaming responses");
+                println!("  * Beautiful response cards");
+                println!("  * Function calling support");
+                println!("  * Multi-provider support (OpenAI/Gemini)");
                 continue;
             }
             "/clear" | "/cls" => {
                 execute!(io::stdout(), terminal::Clear(ClearType::All), cursor::MoveTo(0, 0))?;
-                println!("Gemini Chat CLI");
+                println!("{} Chat CLI", client.client_name());
                 println!("===============");
                 println!("Screen cleared! Ready for new conversation.");
                 continue;
@@ -100,6 +196,11 @@ async fn main() -> Result<()> {
             "/stream" => {
                 streaming_mode = !streaming_mode;
                 println!("Streaming mode: {}", if streaming_mode { "ON" } else { "OFF" });
+                continue;
+            }
+            "/switch" | "/reset" => {
+                client.clear_conversation();
+                println!("Conversation history cleared!");
                 continue;
             }
             _ => {}
@@ -220,7 +321,7 @@ async fn main() -> Result<()> {
             
             match response_result {
                 Ok(response) => {
-                    let card = ResponseCard::with_title("Gemini Response");
+                    let card = ResponseCard::with_title(&format!("{} Response", client.client_name()));
                     card.display_complete(&response)?;
                     
                     // Add model response to conversation history (non-streaming doesn't support function calls yet)
