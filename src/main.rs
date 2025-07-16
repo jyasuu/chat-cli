@@ -293,6 +293,36 @@ async fn main() -> Result<()> {
                                     
                                     // Add function response to conversation history
                                     client.add_function_response(&function_response);
+                                    
+                                    // CRITICAL: Continue conversation with function result - send back to LLM
+                                    println!("\n[LLM] Getting LLM response to function result...");
+                                    match client.send_message_stream("").await {
+                                        Ok(mut follow_up_rx) => {
+                                            let follow_up_card = ResponseCard::with_title("LLM Response");
+                                            follow_up_card.start_streaming()?;
+                                            
+                                            let mut follow_up_response = String::new();
+                                            
+                                            while let Some((text_chunk, _function_call)) = follow_up_rx.recv().await {
+                                                if !text_chunk.is_empty() {
+                                                    follow_up_card.stream_content(&text_chunk)?;
+                                                    follow_up_response.push_str(&text_chunk);
+                                                }
+                                            }
+                                            
+                                            if follow_up_response.is_empty() {
+                                                follow_up_card.stream_content("No response received")?;
+                                            }
+                                            
+                                            follow_up_card.end_streaming()?;
+                                            
+                                            // Add the follow-up response to conversation history
+                                            client.add_model_response(&follow_up_response, None);
+                                        }
+                                        Err(e) => {
+                                            println!("\n[ERROR] Failed to get LLM response: {}", e);
+                                        }
+                                    }
                                 }
                                 Err(e) => {
                                     let error_card = ResponseCard::with_title("Function Error");
