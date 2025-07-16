@@ -5,6 +5,7 @@ use futures::stream::StreamExt;
 use tokio::sync::mpsc;
 use std::fs::OpenOptions;
 use std::io::Write;
+use async_trait::async_trait;
 
 #[derive(Clone)]
 pub struct GeminiClient {
@@ -178,15 +179,20 @@ impl GeminiClient {
         );
 
         let mut contents = self.conversation_history.clone();
-        contents.push(Content {
-            role: "user".to_string(),
-            parts: vec![Part {
-                text: Some(message.to_string()),
-                function_call: None,
-                function_response: None,
-            }],
-        });
+        
+        if !message.is_empty()
+        {
+            contents.push(Content {
+                role: "user".to_string(),
+                parts: vec![Part {
+                    text: Some(message.to_string()),
+                    function_call: None,
+                    function_response: None,
+                }],
+            });
 
+        }
+        
         let tools = Some(vec![Tool {
             function_declarations: crate::function_calling::FunctionExecutor::get_available_tools()
                 .into_iter()
@@ -209,6 +215,20 @@ impl GeminiClient {
             system_instruction: self.system_instruction.clone(),
             tools,
         };
+
+        // Log the request payload
+        if let Ok(request_json) = serde_json::to_string_pretty(&request) {
+            if let Ok(mut file) = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("tmp_rovodev_gemini_request_debug.log") 
+            {
+                let timestamp = chrono::Utc::now().format("%H:%M:%S%.3f");
+                let _ = writeln!(file, "[{}] GEMINI REQUEST PAYLOAD:", timestamp);
+                let _ = writeln!(file, "{}", request_json);
+                let _ = writeln!(file, "---");
+            }
+        }
 
         let response = self
             .client
@@ -250,14 +270,17 @@ impl GeminiClient {
         );
 
         let mut contents = self.conversation_history.clone();
-        contents.push(Content {
-            role: "user".to_string(),
-            parts: vec![Part {
-                text: Some(message.to_string()),
-                function_call: None,
-                function_response: None,
-            }],
-        });
+        if !message.is_empty()
+        {
+            contents.push(Content {
+                role: "user".to_string(),
+                parts: vec![Part {
+                    text: Some(message.to_string()),
+                    function_call: None,
+                    function_response: None,
+                }],
+            });
+        }
 
         let tools = Some(vec![Tool {
             function_declarations: crate::function_calling::FunctionExecutor::get_available_tools()
@@ -281,6 +304,20 @@ impl GeminiClient {
             system_instruction: self.system_instruction.clone(),
             tools,
         };
+
+        // Log the request payload
+        if let Ok(request_json) = serde_json::to_string_pretty(&request) {
+            if let Ok(mut file) = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("tmp_rovodev_gemini_request_debug.log") 
+            {
+                let timestamp = chrono::Utc::now().format("%H:%M:%S%.3f");
+                let _ = writeln!(file, "[{}] GEMINI STREAMING REQUEST PAYLOAD:", timestamp);
+                let _ = writeln!(file, "{}", request_json);
+                let _ = writeln!(file, "---");
+            }
+        }
 
         let response = self
             .client
@@ -421,5 +458,40 @@ impl GeminiClient {
         });
 
         Ok(rx)
+    }
+}
+
+#[async_trait]
+impl crate::chat_client::ChatClient for GeminiClient {
+    fn load_system_prompt(&mut self, prompt_content: &str) -> Result<()> {
+        self.load_system_prompt(prompt_content)
+    }
+    
+    fn add_user_message(&mut self, message: &str) {
+        self.add_user_message(message)
+    }
+    
+    fn add_function_response(&mut self, function_response: &crate::function_calling::FunctionResponse) {
+        self.add_function_response(function_response)
+    }
+    
+    fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>) {
+        self.add_model_response(response, function_call)
+    }
+    
+    fn clear_conversation(&mut self) {
+        self.clear_conversation()
+    }
+    
+    async fn send_message(&self, message: &str) -> Result<String> {
+        self.send_message(message).await
+    }
+    
+    async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+        self.send_message_stream(message).await
+    }
+    
+    fn client_name(&self) -> &str {
+        "Gemini"
     }
 }

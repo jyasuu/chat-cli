@@ -14,3 +14,4 @@ futures = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 dotenv = "0.15"
 crossterm = "0.29"
+async-trait = "0.1"

@@ -5,6 +5,7 @@ use futures::stream::StreamExt;
 use tokio::sync::mpsc;
 use std::fs::OpenOptions;
 use std::io::Write;
+use async_trait::async_trait;
 
 #[derive(Clone)]
 pub struct OpenAIClient {
@@ -274,7 +275,7 @@ impl OpenAIClient {
     pub async fn send_message(&self, message: &str) -> Result<String> {
         let url = format!("{}/chat/completions", self.base_url);
 
-        let messages = self.build_messages(Some(message));
+        let messages = self.build_messages(if message.is_empty() {None} else{Some(message)});
         let tools = self.build_tools();
 
         let request = ChatCompletionRequest {
@@ -287,6 +288,20 @@ impl OpenAIClient {
             tools,
             tool_choice: None,
         };
+
+        // Log the request payload
+        if let Ok(request_json) = serde_json::to_string_pretty(&request) {
+            if let Ok(mut file) = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("tmp_rovodev_openai_request_debug.log") 
+            {
+                let timestamp = chrono::Utc::now().format("%H:%M:%S%.3f");
+                let _ = writeln!(file, "[{}] OPENAI REQUEST PAYLOAD:", timestamp);
+                let _ = writeln!(file, "{}", request_json);
+                let _ = writeln!(file, "---");
+            }
+        }
 
         let response = self
             .client
@@ -326,7 +341,7 @@ impl OpenAIClient {
     pub async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
         let url = format!("{}/chat/completions", self.base_url);
 
-        let messages = self.build_messages(Some(message));
+        let messages = self.build_messages(if message.is_empty() {None} else{Some(message)});
         let tools = self.build_tools();
 
         let request = ChatCompletionRequest {
@@ -339,6 +354,20 @@ impl OpenAIClient {
             tools,
             tool_choice: None,
         };
+
+        // Log the request payload
+        if let Ok(request_json) = serde_json::to_string_pretty(&request) {
+            if let Ok(mut file) = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("tmp_rovodev_openai_request_debug.log") 
+            {
+                let timestamp = chrono::Utc::now().format("%H:%M:%S%.3f");
+                let _ = writeln!(file, "[{}] OPENAI STREAMING REQUEST PAYLOAD:", timestamp);
+                let _ = writeln!(file, "{}", request_json);
+                let _ = writeln!(file, "---");
+            }
+        }
 
         let response = self
             .client
@@ -541,5 +570,51 @@ impl OpenAIClient {
         });
 
         Ok(rx)
+    }
+}
+
+#[async_trait]
+impl crate::chat_client::ChatClient for OpenAIClient {
+    fn load_system_prompt(&mut self, prompt_content: &str) -> Result<()> {
+        self.load_system_prompt(prompt_content)
+    }
+    
+    fn add_user_message(&mut self, message: &str) {
+        self.add_user_message(message)
+    }
+    
+    fn add_function_response(&mut self, function_response: &crate::function_calling::FunctionResponse) {
+        self.add_function_response(function_response)
+    }
+    
+    fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>) {
+        // Convert function call format for OpenAI
+        let tool_calls = function_call.map(|fc| {
+            vec![ToolCall {
+                id: format!("call_{}", chrono::Utc::now().timestamp_millis()),
+                call_type: "function".to_string(),
+                function: FunctionCall {
+                    name: fc.get("name").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
+                    arguments: fc.get("args").map(|v| v.to_string()).unwrap_or_default(),
+                },
+            }]
+        });
+        self.add_model_response(response, tool_calls)
+    }
+    
+    fn clear_conversation(&mut self) {
+        self.clear_conversation()
+    }
+    
+    async fn send_message(&self, message: &str) -> Result<String> {
+        self.send_message(message).await
+    }
+    
+    async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+        self.send_message_stream(message).await
+    }
+    
+    fn client_name(&self) -> &str {
+        "OpenAI"
     }
 }
