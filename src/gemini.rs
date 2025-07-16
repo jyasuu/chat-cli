@@ -12,16 +12,24 @@ pub struct GeminiClient {
     api_key: String,
     model: String,
     base_url: String,
+    conversation_history: Vec<Content>,
+    system_instruction: Option<SystemInstruction>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Content {
     parts: Vec<Part>,
+    role: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Part {
-    text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    text: Option<String>,
+    #[serde(rename = "functionCall", skip_serializing_if = "Option::is_none")]
+    function_call: Option<serde_json::Value>,
+    #[serde(rename = "functionResponse", skip_serializing_if = "Option::is_none")]
+    function_response: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,6 +37,28 @@ struct GenerateContentRequest {
     contents: Vec<Content>,
     #[serde(rename = "generationConfig")]
     generation_config: Option<GenerationConfig>,
+    #[serde(rename = "systemInstruction", skip_serializing_if = "Option::is_none")]
+    system_instruction: Option<SystemInstruction>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tools: Option<Vec<Tool>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct SystemInstruction {
+    parts: Vec<Part>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Tool {
+    #[serde(rename = "functionDeclarations")]
+    function_declarations: Vec<FunctionDeclaration>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct FunctionDeclaration {
+    name: String,
+    description: String,
+    parameters: serde_json::Value,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -69,7 +99,75 @@ impl GeminiClient {
             api_key,
             model,
             base_url: "https://generativelanguage.googleapis.com/v1beta/models".to_string(),
+            conversation_history: Vec::new(),
+            system_instruction: None,
         }
+    }
+
+    pub fn load_system_prompt(&mut self, prompt_content: &str) -> Result<()> {
+        self.system_instruction = Some(SystemInstruction {
+            parts: vec![Part {
+                text: Some(prompt_content.to_string()),
+                function_call: None,
+                function_response: None,
+            }],
+        });
+        Ok(())
+    }
+
+    pub fn add_user_message(&mut self, message: &str) {
+        self.conversation_history.push(Content {
+            role: "user".to_string(),
+            parts: vec![Part {
+                text: Some(message.to_string()),
+                function_call: None,
+                function_response: None,
+            }],
+        });
+    }
+
+    pub fn add_function_response(&mut self, function_response: &crate::function_calling::FunctionResponse) {
+        self.conversation_history.push(Content {
+            role: "user".to_string(),
+            parts: vec![Part {
+                text: None,
+                function_call: None,
+                function_response: Some(serde_json::json!({
+                    "id": function_response.id,
+                    "name": function_response.name,
+                    "response": function_response.response
+                })),
+            }],
+        });
+    }
+
+    pub fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>) {
+        let mut parts = Vec::new();
+        
+        if !response.is_empty() {
+            parts.push(Part {
+                text: Some(response.to_string()),
+                function_call: None,
+                function_response: None,
+            });
+        }
+        
+        if let Some(fc) = function_call {
+            parts.push(Part {
+                text: None,
+                function_call: Some(fc),
+                function_response: None,
+            });
+        }
+
+        self.conversation_history.push(Content {
+            role: "model".to_string(),
+            parts,
+        });
+    }
+
+    pub fn clear_conversation(&mut self) {
+        self.conversation_history.clear();
     }
 
     #[allow(dead_code)]
@@ -79,18 +177,37 @@ impl GeminiClient {
             self.base_url, self.model, self.api_key
         );
 
-        let request = GenerateContentRequest {
-            contents: vec![Content {
-                parts: vec![Part {
-                    text: message.to_string(),
-                }],
+        let mut contents = self.conversation_history.clone();
+        contents.push(Content {
+            role: "user".to_string(),
+            parts: vec![Part {
+                text: Some(message.to_string()),
+                function_call: None,
+                function_response: None,
             }],
+        });
+
+        let tools = Some(vec![Tool {
+            function_declarations: crate::function_calling::FunctionExecutor::get_available_tools()
+                .into_iter()
+                .map(|tool| FunctionDeclaration {
+                    name: tool.name,
+                    description: tool.description,
+                    parameters: tool.parameters,
+                })
+                .collect(),
+        }]);
+
+        let request = GenerateContentRequest {
+            contents,
             generation_config: Some(GenerationConfig {
                 temperature: 0.7,
                 top_p: 0.95,
                 top_k: 40,
                 max_output_tokens: 2048,
             }),
+            system_instruction: self.system_instruction.clone(),
+            tools,
         };
 
         let response = self
@@ -116,27 +233,53 @@ impl GeminiClient {
             return Err(anyhow!("Empty response from API"));
         }
 
-        Ok(candidate.content.parts[0].text.clone())
+        // Extract text from the first part that has text
+        for part in &candidate.content.parts {
+            if let Some(text) = &part.text {
+                return Ok(text.clone());
+            }
+        }
+
+        Err(anyhow!("No text content in response"))
     }
 
-    pub async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<String>> {
+    pub async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
         let url = format!(
             "{}/{}:streamGenerateContent?alt=sse&key={}",
             self.base_url, self.model, self.api_key
         );
 
-        let request = GenerateContentRequest {
-            contents: vec![Content {
-                parts: vec![Part {
-                    text: message.to_string(),
-                }],
+        let mut contents = self.conversation_history.clone();
+        contents.push(Content {
+            role: "user".to_string(),
+            parts: vec![Part {
+                text: Some(message.to_string()),
+                function_call: None,
+                function_response: None,
             }],
+        });
+
+        let tools = Some(vec![Tool {
+            function_declarations: crate::function_calling::FunctionExecutor::get_available_tools()
+                .into_iter()
+                .map(|tool| FunctionDeclaration {
+                    name: tool.name,
+                    description: tool.description,
+                    parameters: tool.parameters,
+                })
+                .collect(),
+        }]);
+
+        let request = GenerateContentRequest {
+            contents,
             generation_config: Some(GenerationConfig {
                 temperature: 0.7,
                 top_p: 0.95,
                 top_k: 40,
                 max_output_tokens: 2048,
             }),
+            system_instruction: self.system_instruction.clone(),
+            tools,
         };
 
         let response = self
@@ -152,7 +295,7 @@ impl GeminiClient {
             return Err(anyhow!("API request failed: {}", error_text));
         }
 
-        let (tx, rx) = mpsc::channel::<String>(1000);
+        let (tx, rx) = mpsc::channel::<(String, Option<serde_json::Value>)>(1000);
         
         // Add logging function
         let log_debug = |msg: &str| {
@@ -215,21 +358,30 @@ impl GeminiClient {
                                                 if !response_data.candidates.is_empty() {
                                                     let candidate = &response_data.candidates[0];
                                                     if !candidate.content.parts.is_empty() {
-                                                        let text = &candidate.content.parts[0].text;
-                                                        log_debug(&format!("Extracted text: {:?}", text));
-                                                        if !text.is_empty() {
-                                                            log_debug(&format!("GEMINI: Sending text to channel: {:?} (length: {})", text, text.len()));
-                                                            match tx.send(text.clone()).await {
-                                                                Ok(_) => {
-                                                                    log_debug("GEMINI: Text sent successfully to channel");
-                                                                }
-                                                                Err(e) => {
-                                                                    log_debug(&format!("GEMINI: Receiver dropped, stopping stream: {}", e));
-                                                                    return; // Receiver dropped
+                                                        for part in &candidate.content.parts {
+                                                            let mut text_content = String::new();
+                                                            let mut function_call = None;
+                                                            
+                                                            if let Some(text) = &part.text {
+                                                                text_content = text.clone();
+                                                            }
+                                                            
+                                                            if let Some(fc) = &part.function_call {
+                                                                function_call = Some(fc.clone());
+                                                            }
+                                                            
+                                                            if !text_content.is_empty() || function_call.is_some() {
+                                                                log_debug(&format!("GEMINI: Sending content to channel: text={:?}, function_call={:?}", text_content, function_call));
+                                                                match tx.send((text_content, function_call)).await {
+                                                                    Ok(_) => {
+                                                                        log_debug("GEMINI: Content sent successfully to channel");
+                                                                    }
+                                                                    Err(e) => {
+                                                                        log_debug(&format!("GEMINI: Receiver dropped, stopping stream: {}", e));
+                                                                        return; // Receiver dropped
+                                                                    }
                                                                 }
                                                             }
-                                                        } else {
-                                                            log_debug("Text is empty, skipping");
                                                         }
                                                     } else {
                                                         log_debug("No parts in candidate content");
@@ -242,7 +394,7 @@ impl GeminiClient {
                                                 // Send error message for debugging
                                                 let error_msg = format!("JSON parse error: {} - Data: {}", e, json_data);
                                                 log_debug(&format!("JSON parse error: {}", error_msg));
-                                                if tx.send(error_msg).await.is_err() {
+                                                if tx.send((error_msg, None)).await.is_err() {
                                                     log_debug("Failed to send error message, receiver dropped");
                                                     return;
                                                 }
@@ -257,7 +409,7 @@ impl GeminiClient {
                         // Send error message
                         let error_msg = format!("Stream error: {}", e);
                         log_debug(&format!("Stream error: {}", error_msg));
-                        let _ = tx.send(error_msg).await;
+                        let _ = tx.send((error_msg, None)).await;
                         break;
                     }
                 }

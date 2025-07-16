@@ -2,6 +2,7 @@ mod gemini;
 mod response_card;
 mod prompt_input;
 mod loading_animation;
+mod function_calling;
 
 use anyhow::Result;
 use dotenv::dotenv;
@@ -9,9 +10,11 @@ use gemini::GeminiClient;
 use response_card::ResponseCard;
 use prompt_input::PromptInput;
 use loading_animation::{LoadingAnimation, AnimationStyle, show_loading_in_response_box};
+use function_calling::FunctionExecutor;
 use std::{
     env,
     io::{self, Write},
+    fs,
 };
 use crossterm::{
     execute,
@@ -29,7 +32,21 @@ async fn main() -> Result<()> {
         .expect("GEMINI_API_KEY environment variable not set. Please copy .env.example to .env and set your API key.");
     
     // Initialize Gemini client
-    let client = GeminiClient::new(api_key, "gemini-2.0-flash-exp".to_string());
+    let mut client = GeminiClient::new(api_key, "gemini-2.0-flash-exp".to_string());
+    
+    // Load system prompt from markdown file
+    match fs::read_to_string("system_prompt.md") {
+        Ok(system_prompt) => {
+            client.load_system_prompt(&system_prompt)?;
+            println!("System prompt loaded from system_prompt.md");
+        }
+        Err(_) => {
+            println!("No system_prompt.md found, continuing without system prompt");
+        }
+    }
+    
+    // Initialize function executor
+    let function_executor = FunctionExecutor::new();
     
     // Clear screen and show welcome
     execute!(io::stdout(), terminal::Clear(ClearType::All), cursor::MoveTo(0, 0))?;
@@ -88,6 +105,9 @@ async fn main() -> Result<()> {
             _ => {}
         }
         
+        // Add user message to conversation history
+        client.add_user_message(input);
+        
         // Send message to Gemini with loading animation
         if streaming_mode {
             // Use ResponseCard for proper streaming with loading animation
@@ -118,9 +138,10 @@ async fn main() -> Result<()> {
                     io::stdout().flush()?;
                     
                     let mut response_text = String::new();
+                    let mut function_calls = Vec::new();
                     let mut is_first_chunk = true;
                     
-                    while let Some(chunk) = rx.recv().await {
+                    while let Some((text_chunk, function_call)) = rx.recv().await {
                         if is_first_chunk {
                             // Clear interrupt hint lines
                             execute!(io::stdout(), cursor::MoveDown(2))?;
@@ -129,16 +150,56 @@ async fn main() -> Result<()> {
                             is_first_chunk = false;
                         }
                         
-                        response_card.stream_content(&chunk)?;
-                        response_text.push_str(&chunk);
+                        if !text_chunk.is_empty() {
+                            response_card.stream_content(&text_chunk)?;
+                            response_text.push_str(&text_chunk);
+                        }
+                        
+                        if let Some(fc) = function_call {
+                            function_calls.push(fc);
+                        }
                     }
                     
-                    if response_text.is_empty() {
+                    if response_text.is_empty() && function_calls.is_empty() {
                         response_card.stream_content("No response received")?;
                     }
                     
                     // Complete the response box
                     response_card.end_streaming()?;
+                    
+                    // Add model response to conversation history
+                    let function_call_json = if function_calls.len() == 1 {
+                        Some(function_calls[0].clone())
+                    } else if function_calls.len() > 1 {
+                        Some(serde_json::json!(function_calls))
+                    } else {
+                        None
+                    };
+                    client.add_model_response(&response_text, function_call_json.clone());
+                    
+                    // Handle function calls
+                    for fc in function_calls {
+                        if let Ok(function_call) = serde_json::from_value::<function_calling::FunctionCall>(fc) {
+                            println!("\n🔧 Executing function: {}", function_call.name);
+                            match function_executor.execute_function(&function_call).await {
+                                Ok(function_response) => {
+                                    let result_card = ResponseCard::with_title("Function Result");
+                                    if let Some(output) = function_response.response.get("output") {
+                                        result_card.display_complete(&output.as_str().unwrap_or("No output"))?;
+                                    } else {
+                                        result_card.display_complete(&serde_json::to_string_pretty(&function_response.response)?)?;
+                                    }
+                                    
+                                    // Add function response to conversation history
+                                    client.add_function_response(&function_response);
+                                }
+                                Err(e) => {
+                                    let error_card = ResponseCard::with_title("Function Error");
+                                    error_card.display_complete(&format!("Failed to execute function: {}", e))?;
+                                }
+                            }
+                        }
+                    }
                 }
                 Err(e) => {
                     loading_handle.stop().await;
@@ -161,6 +222,9 @@ async fn main() -> Result<()> {
                 Ok(response) => {
                     let card = ResponseCard::with_title("Gemini Response");
                     card.display_complete(&response)?;
+                    
+                    // Add model response to conversation history (non-streaming doesn't support function calls yet)
+                    client.add_model_response(&response, None);
                 }
                 Err(e) => {
                     let error_card = ResponseCard::with_title("Error");
