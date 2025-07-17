@@ -6,6 +6,7 @@ use tokio::sync::mpsc;
 use std::fs::OpenOptions;
 use std::io::Write;
 use async_trait::async_trait;
+use crate::function_calling::ToolDefinition;
 
 #[derive(Clone)]
 pub struct OpenAIClient {
@@ -15,6 +16,7 @@ pub struct OpenAIClient {
     base_url: String,
     conversation_history: Vec<Message>,
     system_message: Option<String>,
+    available_tools: Vec<ToolDefinition>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -172,6 +174,7 @@ impl OpenAIClient {
             base_url: "https://api.openai.com/v1".to_string(),
             conversation_history: Vec::new(),
             system_message: None,
+            available_tools: Vec::new(),
         }
     }
 
@@ -183,6 +186,10 @@ impl OpenAIClient {
     pub fn load_system_prompt(&mut self, prompt_content: &str) -> Result<()> {
         self.system_message = Some(prompt_content.to_string());
         Ok(())
+    }
+    
+    pub fn set_available_tools(&mut self, tools: Vec<ToolDefinition>) {
+        self.available_tools = tools;
     }
 
     pub fn add_user_message(&mut self, message: &str) {
@@ -251,20 +258,19 @@ impl OpenAIClient {
     }
 
     fn build_tools(&self) -> Option<Vec<Tool>> {
-        let available_tools = crate::function_calling::FunctionExecutor::get_available_tools();
-        if available_tools.is_empty() {
+        if self.available_tools.is_empty() {
             return None;
         }
 
         Some(
-            available_tools
-                .into_iter()
+            self.available_tools
+                .iter()
                 .map(|tool| Tool {
                     tool_type: "function".to_string(),
                     function: ToolFunction {
-                        name: tool.name,
-                        description: tool.description,
-                        parameters: tool.parameters,
+                        name: tool.name.clone(),
+                        description: tool.description.clone(),
+                        parameters: tool.parameters.clone(),
                     },
                 })
                 .collect(),
@@ -577,6 +583,10 @@ impl OpenAIClient {
 impl crate::chat_client::ChatClient for OpenAIClient {
     fn load_system_prompt(&mut self, prompt_content: &str) -> Result<()> {
         self.load_system_prompt(prompt_content)
+    }
+    
+    fn set_available_tools(&mut self, tools: Vec<crate::function_calling::ToolDefinition>) {
+        self.set_available_tools(tools)
     }
     
     fn add_user_message(&mut self, message: &str) {

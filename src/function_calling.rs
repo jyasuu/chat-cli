@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use tokio::process::Command as AsyncCommand;
+use crate::mcp_client::McpClientManager;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FunctionCall {
@@ -15,22 +16,31 @@ pub struct FunctionResponse {
     pub response: serde_json::Value,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ToolDefinition {
     pub name: String,
     pub description: String,
     pub parameters: serde_json::Value,
 }
 
-pub struct FunctionExecutor;
+pub struct FunctionExecutor {
+    mcp_manager: Option<McpClientManager>,
+}
 
 impl FunctionExecutor {
     pub fn new() -> Self {
-        Self
+        Self {
+            mcp_manager: None,
+        }
     }
 
-    pub fn get_available_tools() -> Vec<ToolDefinition> {
-        vec![
+    pub fn with_mcp_manager(mut self, mcp_manager: McpClientManager) -> Self {
+        self.mcp_manager = Some(mcp_manager);
+        self
+    }
+
+    pub fn get_available_tools(&self) -> Vec<ToolDefinition> {
+        let mut tools = vec![
             ToolDefinition {
                 name: "shell_command".to_string(),
                 description: "Execute a shell command in the current working directory".to_string(),
@@ -45,7 +55,14 @@ impl FunctionExecutor {
                     "required": ["command"]
                 }),
             }
-        ]
+        ];
+
+        // Add MCP tools if available
+        if let Some(mcp_manager) = &self.mcp_manager {
+            tools.extend(mcp_manager.get_available_tools());
+        }
+
+        tools
     }
 
     pub async fn execute_function(&self, function_call: &FunctionCall) -> Result<FunctionResponse> {
@@ -59,7 +76,15 @@ impl FunctionExecutor {
                 
                 self.execute_shell_command(command, &function_id).await
             }
-            _ => Err(anyhow!("Unknown function: {}", function_call.name))
+            _ => {
+                // Check if it's an MCP tool
+                if let Some(mcp_manager) = &self.mcp_manager {
+                    if mcp_manager.has_tool(&function_call.name) {
+                        return mcp_manager.execute_tool(function_call).await;
+                    }
+                }
+                Err(anyhow!("Unknown function: {}", function_call.name))
+            }
         }
     }
 

@@ -120,6 +120,10 @@ impl MockLLMClient {
         self.system_prompt = Some(prompt_content.to_string());
         Ok(())
     }
+    
+    pub fn set_available_tools(&mut self, _tools: Vec<crate::function_calling::ToolDefinition>) {
+        // Mock client doesn't need to store tools, but we implement the interface
+    }
 
     pub fn add_user_message(&mut self, message: &str) {
         self.conversation_history.push(MockMessage {
@@ -223,6 +227,10 @@ impl Default for MockLLMClient {
 impl crate::chat_client::ChatClient for MockLLMClient {
     fn load_system_prompt(&mut self, prompt_content: &str) -> Result<()> {
         self.load_system_prompt(prompt_content)
+    }
+    
+    fn set_available_tools(&mut self, tools: Vec<crate::function_calling::ToolDefinition>) {
+        self.set_available_tools(tools)
     }
 
     fn add_user_message(&mut self, message: &str) {

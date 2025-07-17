@@ -6,6 +6,7 @@ mod prompt_input;
 mod loading_animation;
 mod function_calling;
 mod chat_client;
+mod mcp_client;
 
 use anyhow::Result;
 use dotenv::dotenv;
@@ -14,6 +15,7 @@ use response_card::ResponseCard;
 use prompt_input::PromptInput;
 use loading_animation::{LoadingAnimation, AnimationStyle, show_loading_in_response_box};
 use function_calling::FunctionExecutor;
+use mcp_client::{McpClientManager, McpConfig};
 use std::{
     env,
     io::{self, Write},
@@ -68,8 +70,36 @@ async fn main() -> Result<()> {
         ));
     };
     
-    // Initialize function executor
-    let function_executor = FunctionExecutor::new();
+    // Initialize MCP client manager and function executor
+    let mut function_executor = FunctionExecutor::new();
+    
+    // Try to load MCP configuration
+    if let Ok(config_content) = fs::read_to_string("mcp_config.json") {
+        println!("Loading MCP configuration...");
+        match serde_json::from_str::<McpConfig>(&config_content) {
+            Ok(mcp_config) => {
+                let mut mcp_manager = McpClientManager::new();
+                match mcp_manager.load_from_config(mcp_config).await {
+                    Ok(()) => {
+                        println!("MCP servers loaded successfully!");
+                        function_executor = function_executor.with_mcp_manager(mcp_manager);
+                    }
+                    Err(e) => {
+                        println!("Warning: Failed to load MCP servers: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                println!("Warning: Failed to parse MCP configuration: {}", e);
+            }
+        }
+    } else {
+        println!("No MCP configuration found (mcp_config.json). Continuing with built-in tools only.");
+    }
+    
+    // Set available tools on the client
+    let available_tools = function_executor.get_available_tools();
+    client.set_available_tools(available_tools);
     
     // Clear screen and show welcome
     execute!(io::stdout(), terminal::Clear(ClearType::All), cursor::MoveTo(0, 0))?;
@@ -115,6 +145,7 @@ async fn main() -> Result<()> {
                 println!("  * Beautiful response cards");
                 println!("  * Function calling support");
                 println!("  * Multi-provider support (OpenAI/Gemini)");
+                println!("  * MCP (Model Context Protocol) server integration");
                 continue;
             }
             "/clear" | "/cls" => {

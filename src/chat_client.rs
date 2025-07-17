@@ -1,13 +1,16 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use tokio::sync::mpsc;
-use crate::function_calling::FunctionResponse;
+use crate::function_calling::{FunctionResponse, ToolDefinition};
 
 /// Generic trait for chat clients that can communicate with different LLM providers
 #[async_trait]
 pub trait ChatClient {
     /// Load a system prompt for the client
     fn load_system_prompt(&mut self, prompt_content: &str) -> Result<()>;
+    
+    /// Set available tools for function calling
+    fn set_available_tools(&mut self, tools: Vec<ToolDefinition>);
     
     /// Add a user message to the conversation history
     fn add_user_message(&mut self, message: &str);
@@ -47,6 +50,14 @@ impl ChatClient for AnyChatClient {
             AnyChatClient::Gemini(client) => client.load_system_prompt(prompt_content),
             AnyChatClient::OpenAI(client) => client.load_system_prompt(prompt_content),
             AnyChatClient::Mock(client) => client.load_system_prompt(prompt_content),
+        }
+    }
+    
+    fn set_available_tools(&mut self, tools: Vec<ToolDefinition>) {
+        match self {
+            AnyChatClient::Gemini(client) => client.set_available_tools(tools),
+            AnyChatClient::OpenAI(client) => client.set_available_tools(tools),
+            AnyChatClient::Mock(client) => client.set_available_tools(tools),
         }
     }
     

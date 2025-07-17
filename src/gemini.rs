@@ -6,6 +6,7 @@ use tokio::sync::mpsc;
 use std::fs::OpenOptions;
 use std::io::Write;
 use async_trait::async_trait;
+use crate::function_calling::ToolDefinition;
 
 #[derive(Clone)]
 pub struct GeminiClient {
@@ -15,6 +16,7 @@ pub struct GeminiClient {
     base_url: String,
     conversation_history: Vec<Content>,
     system_instruction: Option<SystemInstruction>,
+    available_tools: Vec<ToolDefinition>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -102,6 +104,7 @@ impl GeminiClient {
             base_url: "https://generativelanguage.googleapis.com/v1beta/models".to_string(),
             conversation_history: Vec::new(),
             system_instruction: None,
+            available_tools: Vec::new(),
         }
     }
 
@@ -114,6 +117,10 @@ impl GeminiClient {
             }],
         });
         Ok(())
+    }
+    
+    pub fn set_available_tools(&mut self, tools: Vec<ToolDefinition>) {
+        self.available_tools = tools;
     }
 
     pub fn add_user_message(&mut self, message: &str) {
@@ -194,12 +201,12 @@ impl GeminiClient {
         }
         
         let tools = Some(vec![Tool {
-            function_declarations: crate::function_calling::FunctionExecutor::get_available_tools()
-                .into_iter()
+            function_declarations: self.available_tools
+                .iter()
                 .map(|tool| FunctionDeclaration {
-                    name: tool.name,
-                    description: tool.description,
-                    parameters: tool.parameters,
+                    name: tool.name.clone(),
+                    description: tool.description.clone(),
+                    parameters: tool.parameters.clone(),
                 })
                 .collect(),
         }]);
@@ -283,12 +290,12 @@ impl GeminiClient {
         }
 
         let tools = Some(vec![Tool {
-            function_declarations: crate::function_calling::FunctionExecutor::get_available_tools()
-                .into_iter()
+            function_declarations: self.available_tools
+                .iter()
                 .map(|tool| FunctionDeclaration {
-                    name: tool.name,
-                    description: tool.description,
-                    parameters: tool.parameters,
+                    name: tool.name.clone(),
+                    description: tool.description.clone(),
+                    parameters: tool.parameters.clone(),
                 })
                 .collect(),
         }]);
@@ -465,6 +472,10 @@ impl GeminiClient {
 impl crate::chat_client::ChatClient for GeminiClient {
     fn load_system_prompt(&mut self, prompt_content: &str) -> Result<()> {
         self.load_system_prompt(prompt_content)
+    }
+    
+    fn set_available_tools(&mut self, tools: Vec<crate::function_calling::ToolDefinition>) {
+        self.set_available_tools(tools)
     }
     
     fn add_user_message(&mut self, message: &str) {
