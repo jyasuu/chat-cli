@@ -37,6 +37,7 @@ pub trait ChatClient {
 pub enum AnyChatClient {
     Gemini(crate::gemini::GeminiClient),
     OpenAI(crate::openai::OpenAIClient),
+    Mock(crate::mock_llm::MockLLMClient),
 }
 
 #[async_trait]
@@ -45,6 +46,7 @@ impl ChatClient for AnyChatClient {
         match self {
             AnyChatClient::Gemini(client) => client.load_system_prompt(prompt_content),
             AnyChatClient::OpenAI(client) => client.load_system_prompt(prompt_content),
+            AnyChatClient::Mock(client) => client.load_system_prompt(prompt_content),
         }
     }
     
@@ -52,6 +54,7 @@ impl ChatClient for AnyChatClient {
         match self {
             AnyChatClient::Gemini(client) => client.add_user_message(message),
             AnyChatClient::OpenAI(client) => client.add_user_message(message),
+            AnyChatClient::Mock(client) => client.add_user_message(message),
         }
     }
     
@@ -59,6 +62,7 @@ impl ChatClient for AnyChatClient {
         match self {
             AnyChatClient::Gemini(client) => client.add_function_response(function_response),
             AnyChatClient::OpenAI(client) => client.add_function_response(function_response),
+            AnyChatClient::Mock(client) => client.add_function_response(function_response),
         }
     }
     
@@ -79,6 +83,7 @@ impl ChatClient for AnyChatClient {
                 });
                 client.add_model_response(response, tool_calls);
             }
+            AnyChatClient::Mock(client) => client.add_model_response(response, function_call),
         }
     }
     
@@ -86,6 +91,7 @@ impl ChatClient for AnyChatClient {
         match self {
             AnyChatClient::Gemini(client) => client.clear_conversation(),
             AnyChatClient::OpenAI(client) => client.clear_conversation(),
+            AnyChatClient::Mock(client) => client.clear_conversation(),
         }
     }
     
@@ -93,6 +99,7 @@ impl ChatClient for AnyChatClient {
         match self {
             AnyChatClient::Gemini(client) => client.send_message(message).await,
             AnyChatClient::OpenAI(client) => client.send_message(message).await,
+            AnyChatClient::Mock(client) => client.send_message(message).await,
         }
     }
     
@@ -100,6 +107,7 @@ impl ChatClient for AnyChatClient {
         match self {
             AnyChatClient::Gemini(client) => client.send_message_stream(message).await,
             AnyChatClient::OpenAI(client) => client.send_message_stream(message).await,
+            AnyChatClient::Mock(client) => client.send_message_stream(message).await,
         }
     }
     
@@ -107,6 +115,7 @@ impl ChatClient for AnyChatClient {
         match self {
             AnyChatClient::Gemini(_) => "Gemini",
             AnyChatClient::OpenAI(_) => "OpenAI",
+            AnyChatClient::Mock(_) => "MockLLM",
         }
     }
 }
@@ -125,5 +134,15 @@ impl AnyChatClient {
     /// Create a new OpenAI client with custom base URL
     pub fn new_openai_with_base_url(api_key: String, model: String, base_url: String) -> Self {
         AnyChatClient::OpenAI(crate::openai::OpenAIClient::new(api_key, model).with_base_url(base_url))
+    }
+    
+    /// Create a new Mock LLM client
+    pub fn new_mock() -> Self {
+        AnyChatClient::Mock(crate::mock_llm::MockLLMClient::new())
+    }
+    
+    /// Create a new Mock LLM client with custom responses
+    pub fn new_mock_with_responses(responses: Vec<String>) -> Self {
+        AnyChatClient::Mock(crate::mock_llm::MockLLMClient::with_responses(responses))
     }
 }

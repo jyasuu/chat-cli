@@ -1,5 +1,6 @@
 mod gemini;
 mod openai;
+mod mock_llm;
 mod response_card;
 mod prompt_input;
 mod loading_animation;
