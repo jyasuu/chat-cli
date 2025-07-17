@@ -108,6 +108,32 @@ impl GeminiClient {
         }
     }
 
+    /// Sanitize JSON schema for Gemini API by removing unsupported fields
+    fn sanitize_schema_for_gemini(schema: &serde_json::Value) -> serde_json::Value {
+        match schema {
+            serde_json::Value::Object(map) => {
+                let mut new_map = serde_json::Map::new();
+                for (key, value) in map {
+                    // Skip unsupported fields
+                    if key == "additionalProperties" {
+                        continue;
+                    }
+                    // Recursively sanitize nested objects
+                    new_map.insert(key.clone(), Self::sanitize_schema_for_gemini(value));
+                }
+                serde_json::Value::Object(new_map)
+            }
+            serde_json::Value::Array(arr) => {
+                serde_json::Value::Array(
+                    arr.iter()
+                        .map(|v| Self::sanitize_schema_for_gemini(v))
+                        .collect()
+                )
+            }
+            _ => schema.clone(),
+        }
+    }
+
     pub fn load_system_prompt(&mut self, prompt_content: &str) -> Result<()> {
         self.system_instruction = Some(SystemInstruction {
             parts: vec![Part {
@@ -206,7 +232,7 @@ impl GeminiClient {
                 .map(|tool| FunctionDeclaration {
                     name: tool.name.clone(),
                     description: tool.description.clone(),
-                    parameters: tool.parameters.clone(),
+                    parameters: Self::sanitize_schema_for_gemini(&tool.parameters),
                 })
                 .collect(),
         }]);
@@ -295,7 +321,7 @@ impl GeminiClient {
                 .map(|tool| FunctionDeclaration {
                     name: tool.name.clone(),
                     description: tool.description.clone(),
-                    parameters: tool.parameters.clone(),
+                    parameters: Self::sanitize_schema_for_gemini(&tool.parameters),
                 })
                 .collect(),
         }]);
