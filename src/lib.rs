@@ -4,6 +4,7 @@ pub mod gemini;
 pub mod openai;
 pub mod mock_llm;
 pub mod mcp_client;
+pub mod input_manager;
 
 // Re-export commonly used types
 pub use chat_client::{ChatClient, AnyChatClient};

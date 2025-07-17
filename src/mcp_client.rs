@@ -9,6 +9,7 @@ use std::{collections::HashMap, process::Stdio};
 use tokio::process::Command;
 
 use crate::function_calling::{ToolDefinition, FunctionCall, FunctionResponse};
+use crate::input_manager::{InputManager, McpInput};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct McpConfig {
@@ -16,15 +17,7 @@ pub struct McpConfig {
     pub servers: HashMap<String, McpServerConfig>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct McpInput {
-    #[serde(rename = "type")]
-    pub input_type: String,
-    pub id: String,
-    pub description: String,
-    #[serde(default)]
-    pub password: bool,
-}
+// McpInput is now defined in input_manager.rs
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct McpServerConfig {
@@ -38,6 +31,7 @@ pub struct McpServerConfig {
 pub struct McpClientManager {
     clients: HashMap<String, RunningService<RoleClient, ()>>,
     tools: HashMap<String, (String, McpTool)>, // tool_name -> (server_name, tool)
+    input_manager: InputManager,
 }
 
 impl McpClientManager {
@@ -45,34 +39,46 @@ impl McpClientManager {
         Self {
             clients: HashMap::new(),
             tools: HashMap::new(),
+            input_manager: InputManager::new(),
         }
     }
 
     pub async fn load_from_config(&mut self, config: McpConfig) -> Result<()> {
-        // Process inputs (for now, we'll use environment variables)
-        let mut resolved_env = HashMap::new();
-        if let Some(inputs) = &config.inputs {
-            for input in inputs {
-                if let Ok(value) = std::env::var(&input.id.to_uppercase()) {
-                    resolved_env.insert(input.id.clone(), value);
-                } else {
-                    println!("Warning: Environment variable {} not found for input {}", 
-                            input.id.to_uppercase(), input.id);
-                }
-            }
+        // Register input definitions
+        if let Some(inputs) = config.inputs {
+            self.input_manager.register_inputs(inputs);
         }
 
         // Start MCP servers
         for (server_name, server_config) in config.servers {
+            // Check if this server needs any inputs that aren't resolved yet
+            let missing_inputs = self.input_manager.check_dependencies(&server_config.env);
+            
+            if !missing_inputs.is_empty() {
+                println!("Server '{}' requires the following inputs:", server_name);
+                for input_id in &missing_inputs {
+                    println!("  - {}", input_id);
+                }
+                
+                // Prompt for missing inputs
+                for input_id in missing_inputs {
+                    if let Err(e) = self.input_manager.get_input_value(&input_id) {
+                        println!("Error getting input '{}': {}", input_id, e);
+                        continue;
+                    }
+                }
+            }
+            
             println!("Starting MCP server: {}", server_name);
             
             // Resolve environment variables in server config
             let mut env_vars = server_config.env.clone();
             for (_key, value) in &mut env_vars {
-                if value.starts_with("${input:") && value.ends_with("}") {
-                    let input_id = &value[8..value.len()-1];
-                    if let Some(resolved_value) = resolved_env.get(input_id) {
-                        *value = resolved_value.clone();
+                match self.input_manager.resolve_env_vars(value) {
+                    Ok(resolved) => *value = resolved,
+                    Err(e) => {
+                        println!("Error resolving environment variable '{}': {}", value, e);
+                        return Err(anyhow!("Failed to resolve required input for server '{}'", server_name));
                     }
                 }
             }
