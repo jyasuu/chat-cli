@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use tokio::process::Command as AsyncCommand;
 use crate::mcp_client::McpClientManager;
+use crate::tools::ToolRegistry;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FunctionCall {
@@ -25,12 +26,14 @@ pub struct ToolDefinition {
 
 pub struct FunctionExecutor {
     mcp_manager: Option<McpClientManager>,
+    tool_registry: ToolRegistry,
 }
 
 impl FunctionExecutor {
     pub fn new() -> Self {
         Self {
             mcp_manager: None,
+            tool_registry: ToolRegistry::new(),
         }
     }
 
@@ -57,6 +60,9 @@ impl FunctionExecutor {
             }
         ];
 
+        // Add built-in tools from registry
+        tools.extend(self.tool_registry.get_available_tools());
+
         // Add MCP tools if available
         if let Some(mcp_manager) = &self.mcp_manager {
             tools.extend(mcp_manager.get_available_tools());
@@ -77,6 +83,11 @@ impl FunctionExecutor {
                 self.execute_shell_command(command, &function_id).await
             }
             _ => {
+                // Check if it's a built-in tool
+                if self.tool_registry.get_tool(&function_call.name).is_some() {
+                    return self.tool_registry.execute_tool(function_call).await;
+                }
+                
                 // Check if it's an MCP tool
                 if let Some(mcp_manager) = &self.mcp_manager {
                     if mcp_manager.has_tool(&function_call.name) {

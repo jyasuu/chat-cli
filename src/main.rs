@@ -7,6 +7,7 @@ mod loading_animation;
 mod function_calling;
 mod chat_client;
 mod mcp_client;
+mod tools;
 
 use anyhow::Result;
 use dotenv::dotenv;
