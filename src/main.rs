@@ -232,64 +232,64 @@ async fn main() -> Result<()> {
                     response_card.end_streaming()?;
                     
                     // Add model response to conversation history
-                    let function_call_json = if function_calls.len() == 1 {
-                        Some(function_calls[0].clone())
-                    } else if function_calls.len() > 1 {
-                        Some(serde_json::json!(function_calls))
-                    } else {
-                        None
-                    };
-                    client.add_model_response(&response_text, function_call_json.clone());
+                    client.add_model_response(&response_text, function_calls.clone());
                     
-                    // Handle function calls
-                    for fc in function_calls {
-                        if let Ok(function_call) = serde_json::from_value::<function_calling::FunctionCall>(fc) {
-                            println!("\n🔧 Executing function: {}", function_call.name);
-                            match function_executor.execute_function(&function_call).await {
-                                Ok(function_response) => {
-                                    let result_card = ResponseCard::with_title("Function Result");
-                                    if let Some(output) = function_response.response.get("output") {
-                                        result_card.display_complete(&output.as_str().unwrap_or("No output"))?;
-                                    } else {
-                                        result_card.display_complete(&serde_json::to_string_pretty(&function_response.response)?)?;
+                    // Handle function calls - execute all functions first, then get LLM response
+                    if !function_calls.is_empty() {
+                        let mut all_function_responses = Vec::new();
+                        
+                        for fc in function_calls {
+                            if let Ok(function_call) = serde_json::from_value::<function_calling::FunctionCall>(fc) {
+                                println!("\n[EXEC] Executing function: {}", function_call.name);
+                                match function_executor.execute_function(&function_call).await {
+                                    Ok(function_response) => {
+                                        let result_card = ResponseCard::with_title("Function Result");
+                                        if let Some(output) = function_response.response.get("output") {
+                                            result_card.display_complete(&output.as_str().unwrap_or("No output"))?;
+                                        } else {
+                                            result_card.display_complete(&serde_json::to_string_pretty(&function_response.response)?)?;
+                                        }
+                                        
+                                        // Add function response to conversation history
+                                        client.add_function_response(&function_response);
+                                        all_function_responses.push(function_response);
                                     }
-                                    
-                                    // Add function response to conversation history
-                                    client.add_function_response(&function_response);
-                                    
-                                    // CRITICAL: Continue conversation with function result - send back to LLM
-                                    println!("\n[LLM] Getting LLM response to function result...");
-                                    match client.send_message_stream("").await {
-                                        Ok(mut follow_up_rx) => {
-                                            let follow_up_card = ResponseCard::with_title("LLM Response");
-                                            follow_up_card.start_streaming()?;
-                                            
-                                            let mut follow_up_response = String::new();
-                                            
-                                            while let Some((text_chunk, _function_call)) = follow_up_rx.recv().await {
-                                                if !text_chunk.is_empty() {
-                                                    follow_up_card.stream_content(&text_chunk)?;
-                                                    follow_up_response.push_str(&text_chunk);
-                                                }
-                                            }
-                                            
-                                            if follow_up_response.is_empty() {
-                                                follow_up_card.stream_content("No response received")?;
-                                            }
-                                            
-                                            follow_up_card.end_streaming()?;
-                                            
-                                            // Add the follow-up response to conversation history
-                                            client.add_model_response(&follow_up_response, None);
-                                        }
-                                        Err(e) => {
-                                            println!("\n[ERROR] Failed to get LLM response: {}", e);
-                                        }
+                                    Err(e) => {
+                                        let error_card = ResponseCard::with_title("Function Error");
+                                        error_card.display_complete(&format!("Failed to execute function: {}", e))?;
                                     }
                                 }
+                            }
+                        }
+                        
+                        // After executing all functions, get LLM response to all results
+                        if !all_function_responses.is_empty() {
+                            println!("\n[LLM] Getting LLM response to function result...");
+                            match client.send_message_stream("").await {
+                                Ok(mut follow_up_rx) => {
+                                    let follow_up_card = ResponseCard::with_title("Response");
+                                    follow_up_card.start_streaming()?;
+                                    
+                                    let mut follow_up_response = String::new();
+                                    
+                                    while let Some((text_chunk, _function_call)) = follow_up_rx.recv().await {
+                                        if !text_chunk.is_empty() {
+                                            follow_up_card.stream_content(&text_chunk)?;
+                                            follow_up_response.push_str(&text_chunk);
+                                        }
+                                    }
+                                    
+                                    if follow_up_response.is_empty() {
+                                        follow_up_card.stream_content("No response received")?;
+                                    }
+                                    
+                                    follow_up_card.end_streaming()?;
+                                    
+                                    // Add the follow-up response to conversation history
+                                    client.add_model_response(&follow_up_response, vec![]);
+                                }
                                 Err(e) => {
-                                    let error_card = ResponseCard::with_title("Function Error");
-                                    error_card.display_complete(&format!("Failed to execute function: {}", e))?;
+                                    println!("\n[ERROR] Failed to get LLM response: {}", e);
                                 }
                             }
                         }
@@ -318,7 +318,7 @@ async fn main() -> Result<()> {
                     card.display_complete(&response)?;
                     
                     // Add model response to conversation history (non-streaming doesn't support function calls yet)
-                    client.add_model_response(&response, None);
+                    client.add_model_response(&response, vec![]);
                 }
                 Err(e) => {
                     let error_card = ResponseCard::with_title("Error");

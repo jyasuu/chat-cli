@@ -212,7 +212,24 @@ impl OpenAIClient {
         });
     }
 
-    pub fn add_model_response(&mut self, response: &str, tool_calls: Option<Vec<ToolCall>>) {
+    pub fn add_model_response(&mut self, response: &str, function_calls: Vec<serde_json::Value>) {
+        // Convert function_calls to tool_calls format for OpenAI
+        let tool_calls = if function_calls.is_empty() {
+            None
+        } else {
+            // For OpenAI, we need to convert the function calls to tool calls
+            Some(function_calls.into_iter().enumerate().map(|(i, fc)| {
+                ToolCall {
+                    id: format!("call_{}", i),
+                    call_type: "function".to_string(),
+                    function: FunctionCall {
+                        name: fc.get("name").and_then(|n| n.as_str()).unwrap_or("unknown").to_string(),
+                        arguments: fc.get("args").map(|a| serde_json::to_string(a).unwrap_or("{}".to_string())).unwrap_or("{}".to_string()),
+                    },
+                }
+            }).collect())
+        };
+        
         self.conversation_history.push(Message {
             role: "assistant".to_string(),
             content: MessageContent::Text(response.to_string()),
@@ -597,19 +614,8 @@ impl crate::chat_client::ChatClient for OpenAIClient {
         self.add_function_response(function_response)
     }
     
-    fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>) {
-        // Convert function call format for OpenAI
-        let tool_calls = function_call.map(|fc| {
-            vec![ToolCall {
-                id: format!("call_{}", chrono::Utc::now().timestamp_millis()),
-                call_type: "function".to_string(),
-                function: FunctionCall {
-                    name: fc.get("name").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
-                    arguments: fc.get("args").map(|v| v.to_string()).unwrap_or_default(),
-                },
-            }]
-        });
-        self.add_model_response(response, tool_calls)
+    fn add_model_response(&mut self, response: &str, function_calls: Vec<serde_json::Value>) {
+        self.add_model_response(response, function_calls)
     }
     
     fn clear_conversation(&mut self) {

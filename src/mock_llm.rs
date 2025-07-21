@@ -141,7 +141,9 @@ impl MockLLMClient {
         });
     }
 
-    pub fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>) {
+    pub fn add_model_response(&mut self, response: &str, function_calls: Vec<serde_json::Value>) {
+        // For mock, just use the first function call if any
+        let function_call = function_calls.first().cloned();
         self.conversation_history.push(MockMessage {
             role: "assistant".to_string(),
             content: response.to_string(),
@@ -165,7 +167,7 @@ impl MockLLMClient {
         let (response, function_call) = self.get_next_response(message);
 
         // Add model response to history
-        self.add_model_response(&response, function_call);
+        self.add_model_response(&response, function_call.map_or(vec![], |fc| vec![fc]));
 
         Ok(response)
     }
@@ -201,7 +203,7 @@ impl MockLLMClient {
         });
 
         // Add the complete response to history
-        self.add_model_response(&response, function_call);
+        self.add_model_response(&response, function_call.map_or(vec![], |fc| vec![fc]));
 
         Ok(rx)
     }
@@ -241,8 +243,8 @@ impl crate::chat_client::ChatClient for MockLLMClient {
         self.add_function_response(function_response)
     }
 
-    fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>) {
-        self.add_model_response(response, function_call)
+    fn add_model_response(&mut self, response: &str, function_calls: Vec<serde_json::Value>) {
+        self.add_model_response(response, function_calls)
     }
 
     fn clear_conversation(&mut self) {
@@ -263,7 +265,7 @@ impl crate::chat_client::ChatClient for MockLLMClient {
         let (response, function_call) = mock_self.get_next_response(message);
 
         // Add model response to history
-        mock_self.add_model_response(&response, function_call);
+        mock_self.add_model_response(&response, function_call.map_or(vec![], |fc| vec![fc]));
 
         Ok(response)
     }
@@ -302,7 +304,7 @@ impl crate::chat_client::ChatClient for MockLLMClient {
         });
 
         // Add the complete response to history
-        mock_self.add_model_response(&response, function_call);
+        mock_self.add_model_response(&response, function_call.map_or(vec![], |fc| vec![fc]));
 
         Ok(rx)
     }

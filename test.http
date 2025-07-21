@@ -1,0 +1,3062 @@
+POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=
+
+{
+  "contents": [
+    {
+      "parts": [
+        {
+          "text": "help me exec three task. 1. \"ls -lah\" 2. \"whoami\" 3. \"df -h\""
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "functionCall": 
+            {
+              "args": {
+                "command": "ls -lah"
+              },
+              "name": "run_shell_command"
+            }
+          
+        },
+        {"functionCall": 
+            {
+              "args": {
+                "command": "whoami"
+              },
+              "name": "run_shell_command"
+            }
+        },
+        {"functionCall": 
+            {
+              "args": {
+                "command": "df -h"
+              },
+              "name": "run_shell_command"
+            }}
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "run_shell_command-1753075575748",
+            "name": "run_shell_command",
+            "response": {
+              "llm_content": {
+                "command": "ls -lah",
+                "directory": ".",
+                "duration_seconds": 0.007715331,
+                "exit_code": 0,
+                "stderr": "",
+                "stdout": "total 81M\ndrwxr-xr-x  9 gitpod gitpod 4.0K Jul 21 05:26 .\ndrwxr-xr-x  8 gitpod gitpod  114 Jul 21 05:12 ..\n-rwxr-xr-x  1 gitpod gitpod  75M Jul 17 13:35 acli\n-rw-r--r--  1 gitpod gitpod  71K Jul 19 03:06 Cargo.lock\n-rw-r--r--  1 gitpod gitpod  658 Jul 19 03:06 Cargo.toml\n-rw-r--r--  1 gitpod gitpod  156 Jul 13 08:39 case1.json\n-rw-r--r--  1 gitpod gitpod  86K Jul 17 13:35 case2.json\n-rw-r--r--  1 gitpod gitpod 1.1K Jul 21 05:17 .env\n-rw-r--r--  1 gitpod gitpod  946 Jul 17 08:40 .env.example\n-rw-r--r--  1 gitpod gitpod 1.8K Jul 17 13:44 ERRORS.md\ndrwxr-xr-x  2 gitpod gitpod   82 Jul 17 08:40 examples\n-rw-r--r--  1 gitpod gitpod  26K Jul 19 03:16 FUNTION-TOOLS-TEST.md\ndrwxr-xr-x 12 gitpod gitpod 4.0K Jul 19 02:50 gemini-cli\ndrwxr-xr-x  7 gitpod gitpod 4.0K Jul 21 05:25 .git\n-rw-r--r--  1 gitpod gitpod    8 Jun 28 03:18 .gitignore\n-rw-r--r--  1 gitpod gitpod 3.1M Aug 14  2020 harvard.wav\n-rw-r--r--  1 gitpod gitpod 1.8M Jul 17 14:54 harvard.wav.zip\n-rw-r--r--  1 gitpod gitpod  490 Jul 17 14:11 mcp_config.json\n-rw-r--r--  1 gitpod gitpod  161 Jul 17 13:35 mcp_config_simple.json\n-rw-r--r--  1 gitpod gitpod 3.9K Jul 17 13:35 MCP_INTEGRATION.md\n-rw-r--r--  1 gitpod gitpod 7.7K Jul 17 13:35 README.md\ndrwxr-xr-x  9 gitpod gitpod 4.0K Jul 17 11:46 rust-sdk\ndrwxr-xr-x  4 gitpod gitpod 4.0K Jul 19 02:56 src\n-rw-r--r--  1 gitpod gitpod  28K Jul 19 04:13 system_prompt.md\ndrwxr-xr-x  6 gitpod gitpod  110 Jul 17 07:24 target\n-rw-r--r--  1 gitpod gitpod 3.4K Jul 17 13:35 test_mcp_integration.md\n-rw-r--r--  1 gitpod gitpod   88 Jul 21 05:25 test.md\ndrwxr-xr-x  2 gitpod gitpod    6 Jul 17 07:28 tests\n-rw-r--r--  1 gitpod gitpod 125K Jul 21 05:26 tmp_rovodev_gemini_request_debug.log\n-rw-r--r--  1 gitpod gitpod 3.6K Jul 21 05:26 tmp_rovodev_streaming_debug.log\n-rw-r--r--  1 gitpod gitpod  18K Jul 19 02:54 TODO.md\n",
+                "success": true
+              },
+              "return_display": "Command: ls -lah\nDirectory: (root)\nExit code: Some(0)\nDuration: 0.01s\n\nStdout:\ntotal 81M\ndrwxr-xr-x  9 gitpod gitpod 4.0K Jul 21 05:26 .\ndrwxr-xr-x  8 gitpod gitpod  114 Jul 21 05:12 ..\n-rwxr-xr-x  1 gitpod gitpod  75M Jul 17 13:35 acli\n-rw-r--r--  1 gitpod gitpod  71K Jul 19 03:06 Cargo.lock\n-rw-r--r--  1 gitpod gitpod  658 Jul 19 03:06 Cargo.toml\n-rw-r--r--  1 gitpod gitpod  156 Jul 13 08:39 case1.json\n-rw-r--r--  1 gitpod gitpod  86K Jul 17 13:35 case2.json\n-rw-r--r--  1 gitpod gitpod 1.1K Jul 21 05:17 .env\n-rw-r--r--  1 gitpod gitpod  946 Jul 17 08:40 .env.example\n-rw-r--r--  1 gitpod gitpod 1.8K Jul 17 13:44 ERRORS.md\ndrwxr-xr-x  2 gitpod gitpod   82 Jul 17 08:40 examples\n-rw-r--r--  1 gitpod gitpod  26K Jul 19 03:16 FUNTION-TOOLS-TEST.md\ndrwxr-xr-x 12 gitpod gitpod 4.0K Jul 19 02:50 gemini-cli\ndrwxr-xr-x  7 gitpod gitpod 4.0K Jul 21 05:25 .git\n-rw-r--r--  1 gitpod gitpod    8 Jun 28 03:18 .gitignore\n-rw-r--r--  1 gitpod gitpod 3.1M Aug 14  2020 harvard.wav\n-rw-r--r--  1 gitpod gitpod 1.8M Jul 17 14:54 harvard.wav.zip\n-rw-r--r--  1 gitpod gitpod  490 Jul 17 14:11 mcp_config.json\n-rw-r--r--  1 gitpod gitpod  161 Jul 17 13:35 mcp_config_simple.json\n-rw-r--r--  1 gitpod gitpod 3.9K Jul 17 13:35 MCP_INTEGRATION.md\n-rw-r--r--  1 gitpod gitpod 7.7K Jul 17 13:35 README.md\ndrwxr-xr-x  9 gitpod gitpod 4.0K Jul 17 11:46 rust-sdk\ndrwxr-xr-x  4 gitpod gitpod 4.0K Jul 19 02:56 src\n-rw-r--r--  1 gitpod gitpod  28K Jul 19 04:13 system_prompt.md\ndrwxr-xr-x  6 gitpod gitpod  110 Jul 17 07:24 target\n-rw-r--r--  1 gitpod gitpod 3.4K Jul 17 13:35 test_mcp_integration.md\n-rw-r--r--  1 gitpod gitpod   88 Jul 21 05:25 test.md\ndrwxr-xr-x  2 gitpod gitpod    6 Jul 17 07:28 tests\n-rw-r--r--  1 gitpod gitpod 125K Jul 21 05:26 tmp_rovodev_gemini_request_debug.log\n-rw-r--r--  1 gitpod gitpod 3.6K Jul 21 05:26 tmp_rovodev_streaming_debug.log\n-rw-r--r--  1 gitpod gitpod  18K Jul 19 02:54 TODO.md\n\n",
+              "summary": "Command executed successfully in 0.01s"
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "run_shell_command-1753075575878",
+            "name": "run_shell_command",
+            "response": {
+              "llm_content": {
+                "command": "whoami",
+                "directory": ".",
+                "duration_seconds": 0.006719171,
+                "exit_code": 0,
+                "stderr": "",
+                "stdout": "gitpod\n",
+                "success": true
+              },
+              "return_display": "Command: whoami\nDirectory: (root)\nExit code: Some(0)\nDuration: 0.01s\n\nStdout:\ngitpod\n\n",
+              "summary": "Command executed successfully in 0.01s"
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "run_shell_command-1753075576074",
+            "name": "run_shell_command",
+            "response": {
+              "llm_content": {
+                "command": "df -h",
+                "directory": ".",
+                "duration_seconds": 0.00736493,
+                "exit_code": 0,
+                "stderr": "",
+                "stdout": "Filesystem                                Size  Used Avail Use% Mounted on\n/.workspace/mark                          1.4T  721G  680G  52% /\ntmpfs                                      64M     0   64M   0% /dev\n/dev/sda5                                 442G   12G  431G   3% /dev/termination-log\nshm                                        64M     0   64M   0% /dev/shm\ntmpfs                                      32G     0   32G   0% /sys/firmware\n/dev/mapper/lvm--disk-gitpod--workspaces   30G   10G   21G  34% /workspace\n/dev/mapper/lvm--disk-containerd--mount   1.4T  721G  680G  52% /etc/hostname\ntmpfs                                      32G     0   32G   0% /tmp\ntmpfs                                      32G     0   32G   0% /proc/acpi\ntmpfs                                      64M     0   64M   0% /proc/keys\ntmpfs                                      32G     0   32G   0% /proc/scsi\n",
+                "success": true
+              },
+              "return_display": "Command: df -h\nDirectory: (root)\nExit code: Some(0)\nDuration: 0.01s\n\nStdout:\nFilesystem                                Size  Used Avail Use% Mounted on\n/.workspace/mark                          1.4T  721G  680G  52% /\ntmpfs                                      64M     0   64M   0% /dev\n/dev/sda5                                 442G   12G  431G   3% /dev/termination-log\nshm                                        64M     0   64M   0% /dev/shm\ntmpfs                                      32G     0   32G   0% /sys/firmware\n/dev/mapper/lvm--disk-gitpod--workspaces   30G   10G   21G  34% /workspace\n/dev/mapper/lvm--disk-containerd--mount   1.4T  721G  680G  52% /etc/hostname\ntmpfs                                      32G     0   32G   0% /tmp\ntmpfs                                      32G     0   32G   0% /proc/acpi\ntmpfs                                      64M     0   64M   0% /proc/keys\ntmpfs                                      32G     0   32G   0% /proc/scsi\n\n",
+              "summary": "Command executed successfully in 0.01s"
+            }
+          }
+        }
+      ],
+      "role": "user"
+    }
+  ],
+  "generationConfig": {
+    "temperature": 0.7,
+    "topP": 0.95,
+    "topK": 40,
+    "maxOutputTokens": 2048
+  },
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "You are an interactive CLI agent specializing in software engineering tasks. Your primary goal is to help users safely and efficiently, adhering strictly to the following instructions and utilizing your available tools.\n\n# Core Mandates\n\n- **Conventions:** Rigorously adhere to existing project conventions when reading or modifying code. Analyze surrounding code, tests, and configuration first.\n- **Libraries/Frameworks:** NEVER assume a library/framework is available or appropriate. Verify its established usage within the project (check imports, configuration files like 'Cargo.toml', 'requirements.txt', 'build.gradle', etc., or observe neighboring files) before employing it.\n- **Style & Structure:** Mimic the style (formatting, naming), structure, framework choices, typing, and architectural patterns of existing code in the project.\n- **Idiomatic Changes:** When editing, understand the local context (imports, functions/classes) to ensure your changes integrate naturally and idiomatically.\n- **Comments:** Add code comments sparingly. Focus on *why* something is done, especially for complex logic, rather than *what* is done. Only add high-value comments if necessary for clarity or if requested by the user. Do not edit comments that are separate from the code you are changing. *NEVER* talk to the user or describe your changes through comments.\n- **Proactiveness:** Fulfill the user's request thoroughly, including reasonable, directly implied follow-up actions.\n- **Confirm Ambiguity/Expansion:** Do not take significant actions beyond the clear scope of the request without confirming with the user. If asked *how* to do something, explain first, don't just do it.\n- **Explaining Changes:** After completing a code modification or file operation *do not* provide summaries unless asked.\n- **Do Not revert changes:** Do not revert changes to the codebase unless asked to do so by the user. Only revert changes made by you if they have resulted in an error or if the user has explicitly asked you to revert the changes.\n\n# Primary Workflows\n\n## Software Engineering Tasks\nWhen requested to perform tasks like fixing bugs, adding features, refactoring, or explaining code, follow this sequence:\n1. **Understand:** Think about the user's request and the relevant codebase context. Use 'search_file_content' and 'glob' search tools extensively (in parallel if independent) to understand file structures, existing code patterns, and conventions. Use 'read_file' and 'read_many_files' to understand context and validate any assumptions you may have.\n2. **Plan:** Build a coherent and grounded (based on the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process. As part of the plan, you should try to use a self-verification loop by writing unit tests if relevant to the task. Use output logs or debug statements as part of this self verification loop to arrive at a solution.\n3. **Implement:** Use the available tools (e.g., 'replace', 'write_file' 'run_shell_command' ...) to act on the plan, strictly adhering to the project's established conventions (detailed under 'Core Mandates').\n4. **Verify (Tests):** If applicable and feasible, verify the changes using the project's testing procedures. Identify the correct test commands and frameworks by examining 'README' files, build/package configuration (e.g., 'Cargo.toml'), or existing test execution patterns. NEVER assume standard test commands.\n5. **Verify (Standards):** VERY IMPORTANT: After making code changes, execute the project-specific build, linting and type-checking commands (e.g., 'cargo check', 'cargo clippy', 'cargo fmt', 'ruff check .') that you have identified for this project (or obtained from the user). This ensures code quality and adherence to standards. If unsure about these commands, you can ask the user if they'd like you to run them and if so how to.\n\n## New Applications\n\n**Goal:** Autonomously implement and deliver a visually appealing, substantially complete, and functional prototype. Utilize all tools at your disposal to implement the application. Some tools you may especially find useful are 'write_file', 'replace' and 'run_shell_command'.\n\n1. **Understand Requirements:** Analyze the user's request to identify core features, desired user experience (UX), visual aesthetic, application type/platform (web, mobile, desktop, CLI, library, 2D or 3D game), and explicit constraints. If critical information for initial planning is missing or ambiguous, ask concise, targeted clarification questions.\n2. **Propose Plan:** Formulate an internal development plan. Present a clear, concise, high-level summary to the user. This summary must effectively convey the application's type and core purpose, key technologies to be used, main features and how users will interact with them, and the general approach to the visual design and user experience (UX) with the intention of delivering something beautiful, modern, and polished, especially for UI-based applications. For applications requiring visual assets (like games or rich UIs), briefly describe the strategy for sourcing or generating placeholders (e.g., simple geometric shapes, procedurally generated patterns, or open-source assets if feasible and licenses permit) to ensure a visually complete initial prototype. Ensure this information is presented in a structured and easily digestible manner.\n  - When key technologies aren't specified, prefer the following:\n  - **Websites (Frontend):** Rust with Yew or Leptos for WebAssembly frontends, or traditional web technologies.\n  - **Back-End APIs:** Rust with Axum, Actix-web, or Warp frameworks.\n  - **Full-stack:** Rust with Leptos for full-stack web applications.\n  - **CLIs:** Rust with clap for command-line interfaces.\n  - **Mobile App:** Rust with Tauri for cross-platform desktop/mobile apps, or native platform tools.\n  - **3d Games:** Rust with Bevy game engine.\n  - **2d Games:** Rust with Bevy or macroquad.\n3. **User Approval:** Obtain user approval for the proposed plan.\n4. **Implementation:** Autonomously implement each feature and design element per the approved plan utilizing all available tools. When starting ensure you scaffold the application using 'run_shell_command' for commands like 'cargo new', 'cargo init'. Aim for full scope completion. Proactively create or source necessary placeholder assets (e.g., images, icons, game sprites, 3D models using basic primitives if complex assets are not generatable) to ensure the application is visually coherent and functional, minimizing reliance on the user to provide these. If the model can generate simple assets (e.g., a uniformly colored square sprite, a simple 3D cube), it should do so. Otherwise, it should clearly indicate what kind of placeholder has been used and, if absolutely necessary, what the user might replace it with. Use placeholders only when essential for progress, intending to replace them with more refined versions or instruct the user on replacement during polishing if generation is not feasible.\n5. **Verify:** Review work against the original request, the approved plan. Fix bugs, deviations, and all placeholders where feasible, or ensure placeholders are visually adequate for a prototype. Ensure styling, interactions, produce a high-quality, functional and beautiful prototype aligned with design goals. Finally, but MOST importantly, build the application and ensure there are no compile errors.\n6. **Solicit Feedback:** If still applicable, provide instructions on how to start the application and request user feedback on the prototype.\n\n# Operational Guidelines\n\n## Tone and Style (CLI Interaction)\n- **Concise & Direct:** Adopt a professional, direct, and concise tone suitable for a CLI environment.\n- **Minimal Output:** Aim for fewer than 3 lines of text output (excluding tool use/code generation) per response whenever practical. Focus strictly on the user's query.\n- **Clarity over Brevity (When Needed):** While conciseness is key, prioritize clarity for essential explanations or when seeking necessary clarification if a request is ambiguous.\n- **No Chitchat:** Avoid conversational filler, preambles (\\\"Okay, I will now...\\\"), or postambles (\\\"I have finished the changes...\\\"). Get straight to the action or answer.\n- **Formatting:** Use GitHub-flavored Markdown. Responses will be rendered in monospace.\n- **Tools vs. Text:** Use tools for actions, text output *only* for communication. Do not add explanatory comments within tool calls or code blocks unless specifically part of the required code/command itself.\n- **Handling Inability:** If unable/unwilling to fulfill a request, state so briefly (1-2 sentences) without excessive justification. Offer alternatives if appropriate.\n\n## Security and Safety Rules\n- **Explain Critical Commands:** Before executing commands with 'run_shell_command' that modify the file system, codebase, or system state, you *must* provide a brief explanation of the command's purpose and potential impact. Prioritize user understanding and safety. You should not ask permission to use the tool; the user will be presented with a confirmation dialogue upon use (you do not need to tell them this).\n- **Security First:** Always apply security best practices. Never introduce code that exposes, logs, or commits secrets, API keys, or other sensitive information.\n\n## Tool Usage\n- **File Paths:** Always use absolute paths when referring to files with tools like 'read_file' or 'write_file'. Relative paths are not supported. You must provide an absolute path.\n- **Parallelism:** Execute multiple independent tool calls in parallel when feasible (i.e. searching the codebase).\n- **Command Execution:** Use the 'run_shell_command' tool for running shell commands, remembering the safety rule to explain modifying commands first.\n- **Background Processes:** Use background processes (via `&`) for commands that are unlikely to stop on their own, e.g. `node server.js &`. If unsure, ask the user.\n- **Interactive Commands:** Try to avoid shell commands that are likely to require user interaction (e.g. `git rebase -i`). Use non-interactive versions of commands (e.g. `npm init -y` instead of `npm init`) when available, and otherwise remind the user that interactive shell commands are not supported and may cause hangs until canceled by the user.\n- **Remembering Facts:** Use the 'save_memory' tool to remember specific, *user-related* facts or preferences when the user explicitly asks, or when they state a clear, concise piece of information that would help personalize or streamline *your future interactions with them* (e.g., preferred coding style, common project paths they use, personal tool aliases). This tool is for user-specific information that should persist across sessions. Do *not* use it for general project context or information that belongs in project-specific `AGENT.md` files. If unsure whether to save something, you can ask the user, \\\"Should I remember that for you?\\\"\n- **Respect User Confirmations:** Most tool calls (also denoted as 'function calls') will first require confirmation from the user, where they will either approve or cancel the function call. If a user cancels a function call, respect their choice and do _not_ try to make the function call again. It is okay to request the tool call again _only_ if the user requests that same tool call on a subsequent prompt. When a user cancels a function call, assume best intentions from the user and consider inquiring if they prefer any alternative paths forward.\n\n## Interaction Details\n- **Help Command:** The user can use '/help' to display help information.\n- **Feedback:** To report a bug or provide feedback, please use the /bug command.\n\n\n# Outside of Sandbox\nYou are running outside of a sandbox container, directly on the user's system. For critical commands that are particularly likely to modify the user's system outside of the project directory or system temp directory, as you explain the command to the user (per the Explain Critical Commands rule above), also remind the user to consider enabling sandboxing.\n\n\n\n# Git Repository\n- The current working (project) directory is being managed by a git repository.\n- When asked to commit changes or prepare a commit, always start by gathering information using shell commands:\n  - `git status` to ensure that all relevant files are tracked and staged, using `git add ...` as needed.\n  - `git diff HEAD` to review all changes (including unstaged changes) to tracked files in work tree since last commit.\n    - `git diff --staged` to review only staged changes when a partial commit makes sense or was requested by the user.\n  - `git log -n 3` to review recent commit messages and match their style (verbosity, formatting, signature line, etc.)\n- Combine shell commands whenever possible to save time/steps, e.g. `git status && git diff HEAD && git log -n 3`.\n- Always propose a draft commit message. Never just ask the user to give you the full commit message.\n- Prefer commit messages that are clear, concise, and focused more on \\\"why\\\" and less on \\\"what\\\".\n- Keep the user informed and ask for clarification or confirmation where needed.\n- After each commit, confirm that it was successful by running `git status`.\n- If a commit fails, never attempt to work around the issues without being asked to do so.\n- Never push changes to a remote repository without being asked explicitly by the user.\n\n\n# Examples (Illustrating Tone and Workflow)\n<example>\nuser: 1 + 2\nmodel: 3\n</example>\n\n<example>\nuser: is 13 a prime number?\nmodel: true\n</example>\n\n<example>\nuser: list files here.\nmodel: [tool_call: list_directory for path '.']\n</example>\n\n<example>\nuser: start the server implemented in server.js\nmodel: [tool_call: run_shell_command for 'node server.js &' because it must run in the background]\n</example>\n\n<example>\nuser: Refactor the auth logic in src/auth.py to use the requests library instead of urllib.\nmodel: Okay, I can refactor 'src/auth.py'.\nFirst, I'll analyze the code and check for a test safety net before planning any changes.\n[tool_call: glob for path 'tests/test_auth.py']\n[tool_call: read_file for absolute_path '/path/to/tests/test_auth.py']\n(After analysis)\nGreat, 'tests/test_auth.py' exists and covers the core authentication logic. With this safety net in place, I can safely plan the refactoring.\nI'll also confirm 'requests' is a dependency.\n[tool_call: read_file for absolute_path '/path/to/requirements.txt']\n(After analysis)\nLooks good, 'requests' is available.\n\nHere's the plan:\n1.  Replace the 'urllib' calls with 'requests'.\n2.  Add proper 'try...except' error handling for the new network calls.\n3.  Remove the old 'urllib' import.\n4.  Run the project's linter and tests to verify the changes.\n\nShould I proceed?\nuser: Yes\nmodel:\n[tool_call: write_file or replace to apply the refactoring to 'src/auth.py']\nRefactoring complete. Running verification...\n[tool_call: run_shell_command for 'ruff check src/auth.py && pytest']\n(After verification passes)\nAll checks passed. This is a stable checkpoint.\nWould you like me to write a commit message and commit these changes?\n</example>\n\n<example>\nuser: Delete the temp directory.\nmodel: I can run `rm -rf ./temp`. This will permanently delete the directory and all its contents.\n</example>\n\n<example>\nuser: Write tests for someFile.ts\nmodel:\nOkay, I can write those tests. First, I'll read `someFile.ts` to understand its functionality.\n[tool_call: read_file for absolute_path '/path/to/someFile.ts' or use glob to find `someFile.ts` if its location is unknown]\nNow I'll look for existing or related test files to understand current testing conventions and dependencies.\n[tool_call: read_many_files for paths ['**/*.test.ts', 'src/**/*.spec.ts'] assuming someFile.ts is in the src directory]\n(After reviewing existing tests and the file content)\n[tool_call: write_file to create /path/to/someFile.test.ts with the test code]\nI've written the tests. Now I'll run the project's test command to verify them.\n[tool_call: run_shell_command for 'npm run test']\n</example>\n\n<example>\nuser: How do I update the user's profile information in this system?\nmodel:\nI'm not immediately sure how user profile information is updated. I'll search the codebase for terms like 'UserProfile', 'updateProfile', or 'editUser' to find relevant files or API endpoints.\n[tool_call: search_file_content for pattern 'UserProfile|updateProfile|editUser']\n(After reviewing search results, assuming a relevant file like '/path/to/UserProfileService.java' was found)\nOkay, `/path/to/UserProfileService.java` seems like the most relevant file. I'll read its content to understand how updates are handled.\n[tool_call: read_file for absolute_path '/path/to/UserProfileService.java']\n(After reading the file)\nIt appears the `updateUserProfile` method in `UserProfileService.java` is responsible for this. It expects a user ID and a `UserProfileDTO` object...\n</example>\n\n<example>\nuser: Where are all the 'app.config' files in this project? I need to check their settings.\nmodel:\n[tool_call: glob for pattern '**/app.config']\n(Assuming GlobTool returns a list of paths like ['/path/to/moduleA/app.config', '/path/to/moduleB/app.config'])\nI found the following 'app.config' files:\n- /path/to/moduleA/app.config\n- /path/to/moduleB/app.config\nTo help you check their settings, I can read their contents. Which one would you like to start with, or should I read all of them?\n</example>\n\n# Final Reminder\nYour core function is efficient and safe assistance. Balance extreme conciseness with the crucial need for clarity, especially regarding safety and potential system modifications. Always prioritize user control and project conventions. Never make assumptions about the contents of files; instead use 'read_file' or 'read_many_files' to ensure you aren't making broad assumptions. Finally, you are an agent - please keep going until the user's query is completely resolved.\n\n---\n\n--- Context from: AGENT.md ---\n## Building and running\n\nBefore submitting any changes, it is crucial to validate them by running the full preflight check. This command will build the repository, run all tests, check for type errors, and lint the code.\n\nTo run the full suite of checks, execute the following command:\n\n```bash\ncargo test && cargo clippy && cargo fmt --check\n```\n\nThis command sequence ensures that your changes meet all the quality gates of the project. While you can run the individual steps (`cargo build`, `cargo test`, `cargo clippy`, `cargo fmt`) separately, it is highly recommended to use this comprehensive validation.\n\n## Writing Tests\n\nThis project uses Rust's built-in testing framework. When writing tests, aim to follow existing patterns. Key conventions include:\n\n### Test Structure and Framework\n\n- **Framework**: All tests are written using Rust's built-in test framework (`#[test]`, `assert!`, `assert_eq!`, `assert_ne!`).\n- **File Location**: Unit tests are placed in the same file using `#[cfg(test)]` modules. Integration tests go in the `tests/` directory.\n- **Configuration**: Test configuration is handled through `Cargo.toml` and command-line flags.\n- **Setup/Teardown**: Use setup functions or implement `Drop` for cleanup. Consider using `std::sync::Once` for one-time setup.\n\n### Mocking and Testing Utilities\n\n- **Mock Objects**: Create mock implementations using traits or use crates like `mockall` for more complex mocking.\n- **Test Doubles**: Use dependency injection and trait objects to substitute real implementations with test doubles.\n- **External Dependencies**: Mock external services using test-specific implementations or crates like `wiremock`.\n\n### Commonly Tested Modules\n\n- **Standard Library**: `std::fs`, `std::io`, `std::process`, `std::net`.\n- **External Crates**: HTTP clients, database connections, serialization libraries.\n- **Internal Modules**: Business logic, data structures, algorithms.\n\n### Async Testing\n\n- **Tokio Runtime**: Use `#[tokio::test]` for async tests when using Tokio.\n- **Async Assertions**: Test async functions with `.await` and standard assertions.\n- **Timeouts**: Use `tokio::time::timeout` for tests that might hang.\n\n### General Guidance\n\n- When adding tests, first examine existing tests to understand and conform to established conventions.\n- Pay close attention to the mocks at the top of existing test files; they reveal critical dependencies and how they are managed in a test environment.\n\n## Git Repo\n\nThe main branch for this project is called \\\"main\\\"\n\n## Rust\n\nWhen contributing to this Rust codebase, prioritize safety, performance, and idiomatic Rust patterns. Leverage Rust's ownership system, type safety, and zero-cost abstractions to write efficient and maintainable code.\n\n### Ownership and Borrowing\n\nRust's ownership system is fundamental to memory safety and performance. Follow these principles:\n\n- **Single Ownership**: Each value has exactly one owner. When the owner goes out of scope, the value is automatically dropped.\n- **Borrowing Rules**: You can have either one mutable reference or any number of immutable references to a value, but not both simultaneously.\n- **Lifetime Management**: Use explicit lifetime annotations when the compiler cannot infer them, but keep them as simple as possible.\n\n```rust\n// Good: Clear ownership transfer\nfn process_data(data: Vec<String>) -> Vec<String> {\n    data.into_iter().map(|s| s.to_uppercase()).collect()\n}\n\n// Good: Borrowing when you don't need ownership\nfn analyze_data(data: &[String]) -> usize {\n    data.iter().filter(|s| s.len() > 5).count()\n}\n```\n\n### Error Handling\n\nRust's error handling is explicit and type-safe. Follow these patterns:\n\n- **Use Result and Option**: Prefer `Result<T, E>` for fallible operations and `Option<T>` for nullable values.\n- **Avoid unwrap() in Production**: Use `unwrap()` only when you can prove the operation cannot fail, or in examples/tests.\n- **Error Propagation**: Use the `?` operator for clean error propagation up the call stack.\n- **Custom Error Types**: Create meaningful error types that implement `std::error::Error`.\n\n```rust\nuse std::fs;\nuse std::io;\n\nfn read_config(path: &str) -> Result<String, io::Error> {\n    fs::read_to_string(path)\n}\n\n// Good: Proper error handling with ?\nfn load_and_parse_config(path: &str) -> Result<Config, ConfigError> {\n    let content = read_config(path)?;\n    parse_config(&content)\n}\n```\n\n### Type System and Traits\n\nLeverage Rust's powerful type system for safety and expressiveness:\n\n- **Trait Implementation**: Implement traits idiomatically. Use `derive` macros for common traits when possible.\n- **Generic Programming**: Use generics with trait bounds to write reusable, type-safe code.\n- **Newtype Pattern**: Use wrapper types to create distinct types for different concepts.\n- **Zero-Sized Types**: Use unit structs and phantom types for compile-time guarantees.\n\n```rust\n// Good: Using traits for shared behavior\ntrait Drawable {\n    fn draw(&self);\n}\n\n// Good: Generic function with trait bounds\nfn render_all<T: Drawable>(items: &[T]) {\n    for item in items {\n        item.draw();\n    }\n}\n\n// Good: Newtype for type safety\n#[derive(Debug, Clone, PartialEq)]\nstruct UserId(u64);\n\n#[derive(Debug, Clone, PartialEq)]\nstruct ProductId(u64);\n```\n\n### Memory Management and Performance\n\nWrite efficient code that leverages Rust's zero-cost abstractions:\n\n- **Avoid Unnecessary Allocations**: Use string slices (`&str`) instead of `String` when you don't need ownership.\n- **Iterator Chains**: Prefer iterator methods over manual loops for better performance and readability.\n- **Smart Pointers**: Use `Box<T>` for heap allocation, `Rc<T>`/`Arc<T>` for shared ownership, and `RefCell<T>`/`Mutex<T>` for interior mutability.\n- **Capacity Planning**: Use `Vec::with_capacity()` when you know the approximate size.\n\n```rust\n// Good: Efficient iterator chain\nfn process_numbers(numbers: &[i32]) -> Vec<i32> {\n    numbers\n        .iter()\n        .filter(|&&n| n > 0)\n        .map(|&n| n * 2)\n        .collect()\n}\n\n// Good: Avoiding unnecessary allocations\nfn format_message(name: &str, age: u32) -> String {\n    format!(\"Hello, {}! You are {} years old.\", name, age)\n}\n```\n\nBy consistently applying these principles, we can maintain a codebase that is not only efficient and performant but also safe and maintainable.\n\n### Concurrency and Async Programming\n\nRust provides safe concurrency primitives and excellent async support:\n\n- **Thread Safety**: Use `Send` and `Sync` traits to ensure thread safety. Prefer message passing over shared state.\n- **Async/Await**: Use `async`/`await` for asynchronous programming. Be mindful of `Send` bounds in async contexts.\n- **Channels**: Use `std::sync::mpsc` or `tokio::sync` channels for communication between threads/tasks.\n- **Atomic Operations**: Use atomic types for simple shared state instead of mutexes when appropriate.\n\n```rust\nuse tokio::sync::mpsc;\nuse std::sync::Arc;\n\n// Good: Async function with proper error handling\nasync fn fetch_data(url: &str) -> Result<String, reqwest::Error> {\n    let response = reqwest::get(url).await?;\n    response.text().await\n}\n\n// Good: Using channels for communication\nasync fn worker(mut rx: mpsc::Receiver<Task>) {\n    while let Some(task) = rx.recv().await {\n        process_task(task).await;\n    }\n}\n```\n\n### Code Organization and Modules\n\nStructure your code for maintainability and clear APIs:\n\n- **Module Hierarchy**: Organize code into logical modules using `mod` declarations.\n- **Visibility Control**: Use `pub` judiciously to create clean public APIs while keeping implementation details private.\n- **Re-exports**: Use `pub use` to create convenient APIs and flatten module hierarchies.\n- **Feature Flags**: Use Cargo features to make optional functionality truly optional.\n\n```rust\n// Good: Clear module structure\npub mod config;\npub mod database;\npub mod handlers;\n\n// Re-export commonly used types\npub use config::Config;\npub use database::Database;\n\n// Good: Private helper module\nmod utils {\n    pub(crate) fn format_timestamp(ts: u64) -> String {\n        // Implementation details\n    }\n}\n```\n\n### Testing and Documentation\n\nWrite comprehensive tests and documentation:\n\n- **Unit Tests**: Place unit tests in the same file using `#[cfg(test)]` modules.\n- **Integration Tests**: Use the `tests/` directory for integration tests that test your public API.\n- **Documentation**: Write doc comments with `///` that include examples. Use `cargo test` to verify doc examples.\n- **Property-Based Testing**: Consider using `proptest` or `quickcheck` for testing with generated inputs.\n\n```rust\n/// Calculates the factorial of a number.\n/// \n/// # Examples\n/// \n/// ```\n/// assert_eq!(factorial(5), 120);\n/// assert_eq!(factorial(0), 1);\n/// ```\n/// \n/// # Panics\n/// \n/// Panics if `n` is greater than 20 to prevent overflow.\npub fn factorial(n: u32) -> u64 {\n    match n {\n        0 | 1 => 1,\n        _ if n > 20 => panic!(\"Factorial too large\"),\n        _ => (2..=n as u64).product(),\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn test_factorial() {\n        assert_eq!(factorial(0), 1);\n        assert_eq!(factorial(1), 1);\n        assert_eq!(factorial(5), 120);\n    }\n}\n```\n\n### Cargo and Dependencies\n\nManage dependencies and project configuration effectively:\n\n- **Minimal Dependencies**: Only include dependencies you actually need. Regularly audit and update them.\n- **Feature Flags**: Use features to make heavy dependencies optional.\n- **Semantic Versioning**: Follow semver strictly for your public APIs.\n- **Workspace Management**: Use Cargo workspaces for multi-crate projects.\n\n```toml\n[dependencies]\nserde = { version = \"1.0\", features = [\"derive\"] }\ntokio = { version = \"1.0\", features = [\"rt-multi-thread\", \"net\"] }\nanyhow = \"1.0\"\n\n[dev-dependencies]\nproptest = \"1.0\"\n\n[features]\ndefault = []\ndatabase = [\"sqlx\"]\n```\n\n## Comments policy\n\nOnly write high-value comments if at all. Avoid talking to the user through comments.\n\n## General style requirements\n\nUse hyphens instead of underscores in flag names (e.g. `my-flag` instead of `my_flag`).\n--- End of Context from: AGENT.md ---"
+      }
+    ]
+  },
+  "tools": [
+    {
+      "functionDeclarations": [
+        {
+          "name": "shell_command",
+          "description": "Execute a shell command in the current working directory",
+          "parameters": {
+            "properties": {
+              "command": {
+                "description": "The shell command to execute",
+                "type": "string"
+              }
+            },
+            "required": [
+              "command"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "web_fetch",
+          "description": "Processes content from URL(s), including local and private network addresses (e.g., localhost), embedded in a prompt. Include up to 20 URLs and instructions (e.g., summarize, extract specific data) directly in the 'prompt' parameter.",
+          "parameters": {
+            "properties": {
+              "prompt": {
+                "description": "A comprehensive prompt that includes the URL(s) (up to 20) to fetch and specific instructions on how to process their content (e.g., \"Summarize https://example.com/article and extract key points from https://another.com/data\"). Must contain as least one URL starting with http:// or https://.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "prompt"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "search_file_content",
+          "description": "Searches for a regular expression pattern within the content of files in a specified directory (or current working directory). Can filter files by a glob pattern. Returns the lines containing matches, along with their file paths and line numbers.",
+          "parameters": {
+            "properties": {
+              "include": {
+                "description": "Optional: A glob pattern to filter which files are searched (e.g., '*.js', '*.{ts,tsx}', 'src/**'). If omitted, searches all files (respecting potential global ignores).",
+                "type": "string"
+              },
+              "path": {
+                "description": "Optional: The absolute path to the directory to search within. If omitted, searches the current working directory.",
+                "type": "string"
+              },
+              "pattern": {
+                "description": "The regular expression (regex) pattern to search for within file contents (e.g., 'function\\s+myFunction', 'import\\s+\\{.*\\}\\s+from\\s+.*').",
+                "type": "string"
+              }
+            },
+            "required": [
+              "pattern"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "run_shell_command",
+          "description": "This tool executes a given shell command as `bash -c <command>`. Command can start background processes using `&`. Command is executed as a subprocess that leads its own process group.",
+          "parameters": {
+            "properties": {
+              "command": {
+                "description": "Exact bash command to execute as `bash -c <command>`",
+                "type": "string"
+              },
+              "description": {
+                "description": "Brief description of the command for the user. Be specific and concise. Ideally a single sentence. Can be up to 3 sentences for clarity. No line breaks.",
+                "type": "string"
+              },
+              "directory": {
+                "description": "(OPTIONAL) Directory to run the command in, if not the project root directory. Must be relative to the project root directory and must already exist.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "command"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_directory",
+          "description": "Lists the names of files and subdirectories directly within a specified directory path. Can optionally ignore entries matching provided glob patterns.",
+          "parameters": {
+            "properties": {
+              "ignore": {
+                "description": "List of glob patterns to ignore",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "path": {
+                "description": "The absolute path to the directory to list (must be absolute, not relative)",
+                "type": "string"
+              },
+              "respect_git_ignore": {
+                "description": "Optional: Whether to respect .gitignore patterns when listing files. Only available in git repositories. Defaults to true.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "read_many_files",
+          "description": "Reads content from multiple files specified by paths or glob patterns within a configured target directory. For text files, it concatenates their content into a single string.",
+          "parameters": {
+            "properties": {
+              "exclude": {
+                "description": "Optional. Glob patterns for files/directories to exclude. Added to default excludes if useDefaultExcludes is true. Example: [\"**/*.log\", \"temp/\"]",
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "include": {
+                "description": "Optional. Additional glob patterns to include. These are merged with `paths`. Example: [\"*.test.ts\"] to specifically add test files if they were broadly excluded.",
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "paths": {
+                "description": "Required. An array of glob patterns or paths relative to the tool's target directory. Examples: ['src/**/*.ts'], ['README.md', 'docs/']",
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              "recursive": {
+                "description": "Optional. Whether to search recursively (primarily controlled by `**` in glob patterns). Defaults to true.",
+                "type": "boolean"
+              },
+              "respect_git_ignore": {
+                "description": "Optional. Whether to respect .gitignore patterns when discovering files. Only available in git repositories. Defaults to true.",
+                "type": "boolean"
+              },
+              "useDefaultExcludes": {
+                "description": "Optional. Whether to apply a list of default exclusion patterns (e.g., node_modules, .git, binary files). Defaults to true.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "paths"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "google_web_search",
+          "description": "Performs a web search using Google Search (via the Gemini API) and returns the results. This tool is useful for finding information on the internet based on a query.",
+          "parameters": {
+            "properties": {
+              "query": {
+                "description": "The search query to find information on the web.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "write_file",
+          "description": "Writes content to a specified file in the local filesystem.",
+          "parameters": {
+            "properties": {
+              "content": {
+                "description": "The content to write to the file.",
+                "type": "string"
+              },
+              "file_path": {
+                "description": "The absolute path to the file to write to (e.g., '/home/user/project/file.txt'). Relative paths are not supported.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_path",
+              "content"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "read_file",
+          "description": "Reads and returns the content of a specified file from the local filesystem. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), and PDF files. For text files, it can read specific line ranges.",
+          "parameters": {
+            "properties": {
+              "absolute_path": {
+                "description": "The absolute path to the file to read (e.g., '/home/user/project/file.txt'). Relative paths are not supported. You must provide an absolute path.",
+                "type": "string"
+              },
+              "limit": {
+                "description": "Optional: For text files, maximum number of lines to read. Use with 'offset' to paginate through large files. If omitted, reads the entire file (if feasible, up to a default limit).",
+                "type": "number"
+              },
+              "offset": {
+                "description": "Optional: For text files, the 0-based line number to start reading from. Requires 'limit' to be set. Use for paginating through large files.",
+                "type": "number"
+              }
+            },
+            "required": [
+              "absolute_path"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "replace",
+          "description": "Replaces text within a file. By default, replaces a single occurrence, but can replace multiple occurrences when `expected_replacements` is specified. This tool requires providing significant context around the change to ensure precise targeting.",
+          "parameters": {
+            "properties": {
+              "expected_replacements": {
+                "description": "Number of replacements expected. Defaults to 1 if not specified. Use when you want to replace multiple occurrences.",
+                "minimum": 1,
+                "type": "number"
+              },
+              "file_path": {
+                "description": "The absolute path to the file to modify. Must start with '/'.",
+                "type": "string"
+              },
+              "new_string": {
+                "description": "The exact literal text to replace `old_string` with, preferably unescaped. Provide the EXACT text. Ensure the resulting code is correct and idiomatic.",
+                "type": "string"
+              },
+              "old_string": {
+                "description": "The exact literal text to replace, preferably unescaped. For single replacements (default), include at least 3 lines of context BEFORE and AFTER the target text, matching whitespace and indentation precisely. For multiple replacements, specify expected_replacements parameter. If this string is not the exact literal text (i.e. you escaped it) or does not match exactly, the tool will fail.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_path",
+              "old_string",
+              "new_string"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "glob",
+          "description": "Efficiently finds files matching specific glob patterns (e.g., `src/**/*.ts`, `**/*.md`), returning absolute paths sorted by modification time (newest first). Ideal for quickly locating files based on their name or path structure, especially in large codebases.",
+          "parameters": {
+            "properties": {
+              "case_sensitive": {
+                "description": "Optional: Whether the search should be case-sensitive. Defaults to false.",
+                "type": "boolean"
+              },
+              "path": {
+                "description": "Optional: The absolute path to the directory to search within. If omitted, searches the root directory.",
+                "type": "string"
+              },
+              "pattern": {
+                "description": "The glob pattern to match against (e.g., '**/*.py', 'docs/*.md').",
+                "type": "string"
+              },
+              "respect_git_ignore": {
+                "description": "Optional: Whether to respect .gitignore patterns when finding files. Only available in git repositories. Defaults to true.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "pattern"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "save_memory",
+          "description": "Saves a specific piece of information or fact to your long-term memory. Use this tool when the user explicitly asks you to remember something or when the user states a clear, concise fact about themselves, their preferences, or their environment that seems important for you to retain for future interactions.",
+          "parameters": {
+            "properties": {
+              "fact": {
+                "description": "The specific fact or piece of information to remember. Should be a clear, self-contained statement.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "fact"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_pull_request_reviews",
+          "description": "Get reviews for a specific pull request.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_dependabot_alerts",
+          "description": "List dependabot alerts in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "The owner of the repository.",
+                "type": "string"
+              },
+              "repo": {
+                "description": "The name of the repository.",
+                "type": "string"
+              },
+              "severity": {
+                "description": "Filter dependabot alerts by severity",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high",
+                  "critical"
+                ],
+                "type": "string"
+              },
+              "state": {
+                "default": "open",
+                "description": "Filter dependabot alerts by state. Defaults to open",
+                "enum": [
+                  "open",
+                  "fixed",
+                  "dismissed",
+                  "auto_dismissed"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "cancel_workflow_run",
+          "description": "Cancel a workflow run",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "run_id": {
+                "description": "The unique identifier of the workflow run",
+                "type": "number"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "run_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_notification_details",
+          "description": "Get detailed information for a specific GitHub notification, always call this tool when the user asks for details about a specific notification, if you don't know the ID list notifications first.",
+          "parameters": {
+            "properties": {
+              "notificationID": {
+                "description": "The ID of the notification",
+                "type": "string"
+              }
+            },
+            "required": [
+              "notificationID"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "search_repositories",
+          "description": "Search for GitHub repositories",
+          "parameters": {
+            "properties": {
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "query": {
+                "description": "Search query",
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "dismiss_notification",
+          "description": "Dismiss a notification by marking it as read or done",
+          "parameters": {
+            "properties": {
+              "state": {
+                "description": "The new state of the notification (read/done)",
+                "enum": [
+                  "read",
+                  "done"
+                ],
+                "type": "string"
+              },
+              "threadID": {
+                "description": "The ID of the notification thread",
+                "type": "string"
+              }
+            },
+            "required": [
+              "threadID"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_commit",
+          "description": "Get details for a commit from a GitHub repository",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "sha": {
+                "description": "Commit SHA, branch name, or tag name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "sha"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "push_files",
+          "description": "Push multiple files to a GitHub repository in a single commit",
+          "parameters": {
+            "properties": {
+              "branch": {
+                "description": "Branch to push to",
+                "type": "string"
+              },
+              "files": {
+                "description": "Array of file objects to push, each object with path (string) and content (string)",
+                "items": {
+                  "properties": {
+                    "content": {
+                      "description": "file content",
+                      "type": "string"
+                    },
+                    "path": {
+                      "description": "path to the file",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "content"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "message": {
+                "description": "Commit message",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "branch",
+              "files",
+              "message"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "create_or_update_file",
+          "description": "Create or update a single file in a GitHub repository. If updating, you must provide the SHA of the file you want to update. Use this tool to create or update a file in a GitHub repository remotely; do not use it for local file operations.",
+          "parameters": {
+            "properties": {
+              "branch": {
+                "description": "Branch to create/update the file in",
+                "type": "string"
+              },
+              "content": {
+                "description": "Content of the file",
+                "type": "string"
+              },
+              "message": {
+                "description": "Commit message",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner (username or organization)",
+                "type": "string"
+              },
+              "path": {
+                "description": "Path where to create/update the file",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "sha": {
+                "description": "Required if updating an existing file. The blob SHA of the file being replaced.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "path",
+              "content",
+              "message",
+              "branch"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "search_issues",
+          "description": "Search for issues in GitHub repositories using issues search syntax already scoped to is:issue",
+          "parameters": {
+            "properties": {
+              "order": {
+                "description": "Sort order",
+                "enum": [
+                  "asc",
+                  "desc"
+                ],
+                "type": "string"
+              },
+              "owner": {
+                "description": "Optional repository owner. If provided with repo, only notifications for this repository are listed.",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "query": {
+                "description": "Search query using GitHub issues search syntax",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Optional repository name. If provided with owner, only notifications for this repository are listed.",
+                "type": "string"
+              },
+              "sort": {
+                "description": "Sort field by number of matches of categories, defaults to best match",
+                "enum": [
+                  "comments",
+                  "reactions",
+                  "reactions-+1",
+                  "reactions--1",
+                  "reactions-smile",
+                  "reactions-thinking_face",
+                  "reactions-heart",
+                  "reactions-tada",
+                  "interactions",
+                  "created",
+                  "updated"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_tags",
+          "description": "List git tags in a GitHub repository",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "create_and_submit_pull_request_review",
+          "description": "Create and submit a review for a pull request without review comments.",
+          "parameters": {
+            "properties": {
+              "body": {
+                "description": "Review comment text",
+                "type": "string"
+              },
+              "commitID": {
+                "description": "SHA of commit to review",
+                "type": "string"
+              },
+              "event": {
+                "description": "Review action to perform",
+                "enum": [
+                  "APPROVE",
+                  "REQUEST_CHANGES",
+                  "COMMENT"
+                ],
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber",
+              "body",
+              "event"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_file_contents",
+          "description": "Get the contents of a file or directory from a GitHub repository",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner (username or organization)",
+                "type": "string"
+              },
+              "path": {
+                "description": "Path to file/directory (directories must end with a slash '/')",
+                "type": "string"
+              },
+              "ref": {
+                "description": "Accepts optional git refs such as `refs/tags/{tag}`, `refs/heads/{branch}` or `refs/pull/{pr_number}/head`",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "sha": {
+                "description": "Accepts optional commit SHA. If specified, it will be used instead of ref",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "path"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_secret_scanning_alert",
+          "description": "Get details of a specific secret scanning alert in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "alertNumber": {
+                "description": "The number of the alert.",
+                "type": "number"
+              },
+              "owner": {
+                "description": "The owner of the repository.",
+                "type": "string"
+              },
+              "repo": {
+                "description": "The name of the repository.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "alertNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_workflow_jobs",
+          "description": "List jobs for a specific workflow run",
+          "parameters": {
+            "properties": {
+              "filter": {
+                "description": "Filters jobs by their completed_at timestamp",
+                "enum": [
+                  "latest",
+                  "all"
+                ],
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "run_id": {
+                "description": "The unique identifier of the workflow run",
+                "type": "number"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "run_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "search_orgs",
+          "description": "Search for GitHub organizations exclusively",
+          "parameters": {
+            "properties": {
+              "order": {
+                "description": "Sort order",
+                "enum": [
+                  "asc",
+                  "desc"
+                ],
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "query": {
+                "description": "Search query using GitHub organizations search syntax scoped to type:org",
+                "type": "string"
+              },
+              "sort": {
+                "description": "Sort field by category",
+                "enum": [
+                  "followers",
+                  "repositories",
+                  "joined"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "run_workflow",
+          "description": "Run an Actions workflow by workflow ID or filename",
+          "parameters": {
+            "properties": {
+              "inputs": {
+                "description": "Inputs the workflow accepts",
+                "properties": {},
+                "type": "object"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "ref": {
+                "description": "The git reference for the workflow. The reference can be a branch or tag name.",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "workflow_id": {
+                "description": "The workflow ID (numeric) or workflow file name (e.g., main.yml, ci.yaml)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "workflow_id",
+              "ref"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_discussion",
+          "description": "Get a specific discussion by ID",
+          "parameters": {
+            "properties": {
+              "discussionNumber": {
+                "description": "Discussion Number",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "discussionNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "update_pull_request_branch",
+          "description": "Update the branch of a pull request with the latest changes from the base branch.",
+          "parameters": {
+            "properties": {
+              "expectedHeadSha": {
+                "description": "The expected SHA of the pull request's HEAD ref",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "manage_notification_subscription",
+          "description": "Manage a notification subscription: ignore, watch, or delete a notification thread subscription.",
+          "parameters": {
+            "properties": {
+              "action": {
+                "description": "Action to perform: ignore, watch, or delete the notification subscription.",
+                "enum": [
+                  "ignore",
+                  "watch",
+                  "delete"
+                ],
+                "type": "string"
+              },
+              "notificationID": {
+                "description": "The ID of the notification thread.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "notificationID",
+              "action"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_commits",
+          "description": "Get list of commits of a branch in a GitHub repository. Returns at least 30 results per page by default, but can return more if specified using the perPage parameter (up to 100).",
+          "parameters": {
+            "properties": {
+              "author": {
+                "description": "Author username or email address to filter commits by",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "sha": {
+                "description": "Commit SHA, branch or tag name to list commits of. If not provided, uses the default branch of the repository. If a commit SHA is provided, will list commits up to that SHA.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "manage_repository_notification_subscription",
+          "description": "Manage a repository notification subscription: ignore, watch, or delete repository notifications subscription for the provided repository.",
+          "parameters": {
+            "properties": {
+              "action": {
+                "description": "Action to perform: ignore, watch, or delete the repository notification subscription.",
+                "enum": [
+                  "ignore",
+                  "watch",
+                  "delete"
+                ],
+                "type": "string"
+              },
+              "owner": {
+                "description": "The account owner of the repository.",
+                "type": "string"
+              },
+              "repo": {
+                "description": "The name of the repository.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "action"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "merge_pull_request",
+          "description": "Merge a pull request in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "commit_message": {
+                "description": "Extra detail for merge commit",
+                "type": "string"
+              },
+              "commit_title": {
+                "description": "Title for merge commit",
+                "type": "string"
+              },
+              "merge_method": {
+                "description": "Merge method",
+                "enum": [
+                  "merge",
+                  "squash",
+                  "rebase"
+                ],
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "download_workflow_run_artifact",
+          "description": "Get download URL for a workflow run artifact",
+          "parameters": {
+            "properties": {
+              "artifact_id": {
+                "description": "The unique identifier of the artifact",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "artifact_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "create_pending_pull_request_review",
+          "description": "Create a pending review for a pull request. Call this first before attempting to add comments to a pending review, and ultimately submitting it. A pending pull request review means a pull request review, it is pending because you create it first and submit it later, and the PR author will not see it until it is submitted.",
+          "parameters": {
+            "properties": {
+              "commitID": {
+                "description": "SHA of commit to review",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "create_repository",
+          "description": "Create a new GitHub repository in your account",
+          "parameters": {
+            "properties": {
+              "autoInit": {
+                "description": "Initialize with README",
+                "type": "boolean"
+              },
+              "description": {
+                "description": "Repository description",
+                "type": "string"
+              },
+              "name": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "private": {
+                "description": "Whether repo should be private",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "delete_pending_pull_request_review",
+          "description": "Delete the requester's latest pending pull request review. Use this after the user decides not to submit a pending review, if you don't know if they already created one then check first.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_pull_request_status",
+          "description": "Get the status of a specific pull request.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_tag",
+          "description": "Get details about a specific git tag in a GitHub repository",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "tag": {
+                "description": "Tag name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "tag"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "rerun_workflow_run",
+          "description": "Re-run an entire workflow run",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "run_id": {
+                "description": "The unique identifier of the workflow run",
+                "type": "number"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "run_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_dependabot_alert",
+          "description": "Get details of a specific dependabot alert in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "alertNumber": {
+                "description": "The number of the alert.",
+                "type": "number"
+              },
+              "owner": {
+                "description": "The owner of the repository.",
+                "type": "string"
+              },
+              "repo": {
+                "description": "The name of the repository.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "alertNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "add_issue_comment",
+          "description": "Add a comment to a specific issue in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "body": {
+                "description": "Comment content",
+                "type": "string"
+              },
+              "issue_number": {
+                "description": "Issue number to comment on",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "issue_number",
+              "body"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_pull_request_comments",
+          "description": "Get comments for a specific pull request.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "add_pull_request_review_comment_to_pending_review",
+          "description": "Add a comment to the requester's latest pending pull request review, a pending review needs to already exist to call this (check with the user if not sure).",
+          "parameters": {
+            "properties": {
+              "body": {
+                "description": "The text of the review comment",
+                "type": "string"
+              },
+              "line": {
+                "description": "The line of the blob in the pull request diff that the comment applies to. For multi-line comments, the last line of the range",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "path": {
+                "description": "The relative path to the file that necessitates a comment",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "side": {
+                "description": "The side of the diff to comment on. LEFT indicates the previous state, RIGHT indicates the new state",
+                "enum": [
+                  "LEFT",
+                  "RIGHT"
+                ],
+                "type": "string"
+              },
+              "startLine": {
+                "description": "For multi-line comments, the first line of the range that the comment applies to",
+                "type": "number"
+              },
+              "startSide": {
+                "description": "For multi-line comments, the starting side of the diff that the comment applies to. LEFT indicates the previous state, RIGHT indicates the new state",
+                "enum": [
+                  "LEFT",
+                  "RIGHT"
+                ],
+                "type": "string"
+              },
+              "subjectType": {
+                "description": "The level at which the comment is targeted",
+                "enum": [
+                  "FILE",
+                  "LINE"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber",
+              "path",
+              "body",
+              "subjectType"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_workflow_run_artifacts",
+          "description": "List artifacts for a workflow run",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "run_id": {
+                "description": "The unique identifier of the workflow run",
+                "type": "number"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "run_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "search_pull_requests",
+          "description": "Search for pull requests in GitHub repositories using issues search syntax already scoped to is:pr",
+          "parameters": {
+            "properties": {
+              "order": {
+                "description": "Sort order",
+                "enum": [
+                  "asc",
+                  "desc"
+                ],
+                "type": "string"
+              },
+              "owner": {
+                "description": "Optional repository owner. If provided with repo, only notifications for this repository are listed.",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "query": {
+                "description": "Search query using GitHub pull request search syntax",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Optional repository name. If provided with owner, only notifications for this repository are listed.",
+                "type": "string"
+              },
+              "sort": {
+                "description": "Sort field by number of matches of categories, defaults to best match",
+                "enum": [
+                  "comments",
+                  "reactions",
+                  "reactions-+1",
+                  "reactions--1",
+                  "reactions-smile",
+                  "reactions-thinking_face",
+                  "reactions-heart",
+                  "reactions-tada",
+                  "interactions",
+                  "created",
+                  "updated"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_workflow_run_usage",
+          "description": "Get usage metrics for a workflow run",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "run_id": {
+                "description": "The unique identifier of the workflow run",
+                "type": "number"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "run_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "search_users",
+          "description": "Search for GitHub users exclusively",
+          "parameters": {
+            "properties": {
+              "order": {
+                "description": "Sort order",
+                "enum": [
+                  "asc",
+                  "desc"
+                ],
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "query": {
+                "description": "Search query using GitHub users search syntax scoped to type:user",
+                "type": "string"
+              },
+              "sort": {
+                "description": "Sort field by category",
+                "enum": [
+                  "followers",
+                  "repositories",
+                  "joined"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "fork_repository",
+          "description": "Fork a GitHub repository to your account or specified organization",
+          "parameters": {
+            "properties": {
+              "organization": {
+                "description": "Organization to fork to",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_pull_request",
+          "description": "Get details of a specific pull request in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_code_scanning_alerts",
+          "description": "List code scanning alerts in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "The owner of the repository.",
+                "type": "string"
+              },
+              "ref": {
+                "description": "The Git reference for the results you want to list.",
+                "type": "string"
+              },
+              "repo": {
+                "description": "The name of the repository.",
+                "type": "string"
+              },
+              "severity": {
+                "description": "Filter code scanning alerts by severity",
+                "enum": [
+                  "critical",
+                  "high",
+                  "medium",
+                  "low",
+                  "warning",
+                  "note",
+                  "error"
+                ],
+                "type": "string"
+              },
+              "state": {
+                "default": "open",
+                "description": "Filter code scanning alerts by state. Defaults to open",
+                "enum": [
+                  "open",
+                  "closed",
+                  "dismissed",
+                  "fixed"
+                ],
+                "type": "string"
+              },
+              "tool_name": {
+                "description": "The name of the tool used for code scanning.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_discussion_categories",
+          "description": "List discussion categories with their id and name, for a repository",
+          "parameters": {
+            "properties": {
+              "after": {
+                "description": "Cursor for pagination, use the 'after' field from the previous response",
+                "type": "string"
+              },
+              "before": {
+                "description": "Cursor for pagination, use the 'before' field from the previous response",
+                "type": "string"
+              },
+              "first": {
+                "description": "Number of categories to return per page (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "last": {
+                "description": "Number of categories to return from the end (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_discussions",
+          "description": "List discussions for a repository",
+          "parameters": {
+            "properties": {
+              "category": {
+                "description": "Optional filter by discussion category ID. If provided, only discussions with this category are listed.",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_workflow_run_logs",
+          "description": "Download logs for a specific workflow run (EXPENSIVE: downloads ALL logs as ZIP. Consider using get_job_logs with failed_only=true for debugging failed jobs)",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "run_id": {
+                "description": "The unique identifier of the workflow run",
+                "type": "number"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "run_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_notifications",
+          "description": "Lists all GitHub notifications for the authenticated user, including unread notifications, mentions, review requests, assignments, and updates on issues or pull requests. Use this tool whenever the user asks what to work on next, requests a summary of their GitHub activity, wants to see pending reviews, or needs to check for new updates or tasks. This tool is the primary way to discover actionable items, reminders, and outstanding work on GitHub. Always call this tool when asked what to work on next, what is pending, or what needs attention in GitHub.",
+          "parameters": {
+            "properties": {
+              "before": {
+                "description": "Only show notifications updated before the given time (ISO 8601 format)",
+                "type": "string"
+              },
+              "filter": {
+                "description": "Filter notifications to, use default unless specified. Read notifications are ones that have already been acknowledged by the user. Participating notifications are those that the user is directly involved in, such as issues or pull requests they have commented on or created.",
+                "enum": [
+                  "default",
+                  "include_read_notifications",
+                  "only_participating"
+                ],
+                "type": "string"
+              },
+              "owner": {
+                "description": "Optional repository owner. If provided with repo, only notifications for this repository are listed.",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Optional repository name. If provided with owner, only notifications for this repository are listed.",
+                "type": "string"
+              },
+              "since": {
+                "description": "Only show notifications updated after the given time (ISO 8601 format)",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_branches",
+          "description": "List branches in a GitHub repository",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_discussion_comments",
+          "description": "Get comments from a discussion",
+          "parameters": {
+            "properties": {
+              "discussionNumber": {
+                "description": "Discussion Number",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "discussionNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_workflow_runs",
+          "description": "List workflow runs for a specific workflow",
+          "parameters": {
+            "properties": {
+              "actor": {
+                "description": "Returns someone's workflow runs. Use the login for the user who created the workflow run.",
+                "type": "string"
+              },
+              "branch": {
+                "description": "Returns workflow runs associated with a branch. Use the name of the branch.",
+                "type": "string"
+              },
+              "event": {
+                "description": "Returns workflow runs for a specific event type",
+                "enum": [
+                  "branch_protection_rule",
+                  "check_run",
+                  "check_suite",
+                  "create",
+                  "delete",
+                  "deployment",
+                  "deployment_status",
+                  "discussion",
+                  "discussion_comment",
+                  "fork",
+                  "gollum",
+                  "issue_comment",
+                  "issues",
+                  "label",
+                  "merge_group",
+                  "milestone",
+                  "page_build",
+                  "public",
+                  "pull_request",
+                  "pull_request_review",
+                  "pull_request_review_comment",
+                  "pull_request_target",
+                  "push",
+                  "registry_package",
+                  "release",
+                  "repository_dispatch",
+                  "schedule",
+                  "status",
+                  "watch",
+                  "workflow_call",
+                  "workflow_dispatch",
+                  "workflow_run"
+                ],
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "status": {
+                "description": "Returns workflow runs with the check run status",
+                "enum": [
+                  "queued",
+                  "in_progress",
+                  "completed",
+                  "requested",
+                  "waiting"
+                ],
+                "type": "string"
+              },
+              "workflow_id": {
+                "description": "The workflow ID or workflow file name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "workflow_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_code_scanning_alert",
+          "description": "Get details of a specific code scanning alert in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "alertNumber": {
+                "description": "The number of the alert.",
+                "type": "number"
+              },
+              "owner": {
+                "description": "The owner of the repository.",
+                "type": "string"
+              },
+              "repo": {
+                "description": "The name of the repository.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "alertNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_issues",
+          "description": "List issues in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "direction": {
+                "description": "Sort direction",
+                "enum": [
+                  "asc",
+                  "desc"
+                ],
+                "type": "string"
+              },
+              "labels": {
+                "description": "Filter by labels",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "since": {
+                "description": "Filter by date (ISO 8601 timestamp)",
+                "type": "string"
+              },
+              "sort": {
+                "description": "Sort order",
+                "enum": [
+                  "created",
+                  "updated",
+                  "comments"
+                ],
+                "type": "string"
+              },
+              "state": {
+                "description": "Filter by state",
+                "enum": [
+                  "open",
+                  "closed",
+                  "all"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_job_logs",
+          "description": "Download logs for a specific workflow job or efficiently get all failed job logs for a workflow run",
+          "parameters": {
+            "properties": {
+              "failed_only": {
+                "description": "When true, gets logs for all failed jobs in run_id",
+                "type": "boolean"
+              },
+              "job_id": {
+                "description": "The unique identifier of the workflow job (required for single job logs)",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "return_content": {
+                "description": "Returns actual log content instead of URLs",
+                "type": "boolean"
+              },
+              "run_id": {
+                "description": "Workflow run ID (required when using failed_only)",
+                "type": "number"
+              },
+              "tail_lines": {
+                "default": 500,
+                "description": "Number of lines to return from the end of the log",
+                "type": "number"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "search_code",
+          "description": "Search for code across GitHub repositories",
+          "parameters": {
+            "properties": {
+              "order": {
+                "description": "Sort order",
+                "enum": [
+                  "asc",
+                  "desc"
+                ],
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "q": {
+                "description": "Search query using GitHub code search syntax",
+                "type": "string"
+              },
+              "sort": {
+                "description": "Sort field ('indexed' only)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "q"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "submit_pending_pull_request_review",
+          "description": "Submit the requester's latest pending pull request review, normally this is a final step after creating a pending review, adding comments first, unless you know that the user already did the first two steps, you should check before calling this.",
+          "parameters": {
+            "properties": {
+              "body": {
+                "description": "The text of the review comment",
+                "type": "string"
+              },
+              "event": {
+                "description": "The event to perform",
+                "enum": [
+                  "APPROVE",
+                  "REQUEST_CHANGES",
+                  "COMMENT"
+                ],
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber",
+              "event"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "update_issue",
+          "description": "Update an existing issue in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "assignees": {
+                "description": "New assignees",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "body": {
+                "description": "New description",
+                "type": "string"
+              },
+              "issue_number": {
+                "description": "Issue number to update",
+                "type": "number"
+              },
+              "labels": {
+                "description": "New labels",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "milestone": {
+                "description": "New milestone number",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "state": {
+                "description": "New state",
+                "enum": [
+                  "open",
+                  "closed"
+                ],
+                "type": "string"
+              },
+              "title": {
+                "description": "New title",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "issue_number"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "create_issue",
+          "description": "Create a new issue in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "assignees": {
+                "description": "Usernames to assign to this issue",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "body": {
+                "description": "Issue body content",
+                "type": "string"
+              },
+              "labels": {
+                "description": "Labels to apply to this issue",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "milestone": {
+                "description": "Milestone number",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "title": {
+                "description": "Issue title",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "title"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "assign_copilot_to_issue",
+          "description": "Assign Copilot to a specific issue in a GitHub repository.\n\nThis tool can help with the following outcomes:\n- a Pull Request created with source code changes to resolve the issue\n\n\nMore information can be found at:\n- https://docs.github.com/en/copilot/using-github-copilot/using-copilot-coding-agent-to-work-on-tasks/about-assigning-tasks-to-copilot\n",
+          "parameters": {
+            "properties": {
+              "issueNumber": {
+                "description": "Issue number",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "issueNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_pull_request_diff",
+          "description": "Get the diff of a pull request.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_workflow_run",
+          "description": "Get details of a specific workflow run",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "run_id": {
+                "description": "The unique identifier of the workflow run",
+                "type": "number"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "run_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "request_copilot_review",
+          "description": "Request a GitHub Copilot code review for a pull request. Use this for automated feedback on pull requests, usually before requesting a human reviewer.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_pull_requests",
+          "description": "List pull requests in a GitHub repository. If the user specifies an author, then DO NOT use this tool and use the search_pull_requests tool instead.",
+          "parameters": {
+            "properties": {
+              "base": {
+                "description": "Filter by base branch",
+                "type": "string"
+              },
+              "direction": {
+                "description": "Sort direction",
+                "enum": [
+                  "asc",
+                  "desc"
+                ],
+                "type": "string"
+              },
+              "head": {
+                "description": "Filter by head user/org and branch",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "sort": {
+                "description": "Sort by",
+                "enum": [
+                  "created",
+                  "updated",
+                  "popularity",
+                  "long-running"
+                ],
+                "type": "string"
+              },
+              "state": {
+                "description": "Filter by state",
+                "enum": [
+                  "open",
+                  "closed",
+                  "all"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "delete_workflow_run_logs",
+          "description": "Delete logs for a workflow run",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "run_id": {
+                "description": "The unique identifier of the workflow run",
+                "type": "number"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "run_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_workflows",
+          "description": "List workflows in a repository",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "create_branch",
+          "description": "Create a new branch in a GitHub repository",
+          "parameters": {
+            "properties": {
+              "branch": {
+                "description": "Name for new branch",
+                "type": "string"
+              },
+              "from_branch": {
+                "description": "Source branch (defaults to repo default)",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "branch"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "create_pull_request",
+          "description": "Create a new pull request in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "base": {
+                "description": "Branch to merge into",
+                "type": "string"
+              },
+              "body": {
+                "description": "PR description",
+                "type": "string"
+              },
+              "draft": {
+                "description": "Create as draft PR",
+                "type": "boolean"
+              },
+              "head": {
+                "description": "Branch containing changes",
+                "type": "string"
+              },
+              "maintainer_can_modify": {
+                "description": "Allow maintainer edits",
+                "type": "boolean"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "title": {
+                "description": "PR title",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "title",
+              "head",
+              "base"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_pull_request_files",
+          "description": "Get the files changed in a specific pull request.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "pullNumber": {
+                "description": "Pull request number",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_issue",
+          "description": "Get details of a specific issue in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "issue_number": {
+                "description": "The number of the issue",
+                "type": "number"
+              },
+              "owner": {
+                "description": "The owner of the repository",
+                "type": "string"
+              },
+              "repo": {
+                "description": "The name of the repository",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "issue_number"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_me",
+          "description": "Get details of the authenticated GitHub user. Use this when a request is about the user's own profile for GitHub. Or when information is missing to build other tool calls.",
+          "parameters": {
+            "properties": {},
+            "type": "object"
+          }
+        },
+        {
+          "name": "get_issue_comments",
+          "description": "Get comments for a specific issue in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "issue_number": {
+                "description": "Issue number",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "page": {
+                "description": "Page number for pagination (min 1)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "perPage": {
+                "description": "Results per page for pagination (min 1, max 100)",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "issue_number"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "rerun_failed_jobs",
+          "description": "Re-run only the failed jobs in a workflow run",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "run_id": {
+                "description": "The unique identifier of the workflow run",
+                "type": "number"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "run_id"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "list_secret_scanning_alerts",
+          "description": "List secret scanning alerts in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "owner": {
+                "description": "The owner of the repository.",
+                "type": "string"
+              },
+              "repo": {
+                "description": "The name of the repository.",
+                "type": "string"
+              },
+              "resolution": {
+                "description": "Filter by resolution",
+                "enum": [
+                  "false_positive",
+                  "wont_fix",
+                  "revoked",
+                  "pattern_edited",
+                  "pattern_deleted",
+                  "used_in_tests"
+                ],
+                "type": "string"
+              },
+              "secret_type": {
+                "description": "A comma-separated list of secret types to return. All default secret patterns are returned. To return generic patterns, pass the token name(s) in the parameter.",
+                "type": "string"
+              },
+              "state": {
+                "description": "Filter by state",
+                "enum": [
+                  "open",
+                  "resolved"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "delete_file",
+          "description": "Delete a file from a GitHub repository",
+          "parameters": {
+            "properties": {
+              "branch": {
+                "description": "Branch to delete the file from",
+                "type": "string"
+              },
+              "message": {
+                "description": "Commit message",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Repository owner (username or organization)",
+                "type": "string"
+              },
+              "path": {
+                "description": "Path to the file to delete",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "path",
+              "message",
+              "branch"
+            ],
+            "type": "object"
+          }
+        },
+        {
+          "name": "mark_all_notifications_read",
+          "description": "Mark all notifications as read",
+          "parameters": {
+            "properties": {
+              "lastReadAt": {
+                "description": "Describes the last point that notifications were checked (optional). Default: Now",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Optional repository owner. If provided with repo, only notifications for this repository are marked as read.",
+                "type": "string"
+              },
+              "repo": {
+                "description": "Optional repository name. If provided with owner, only notifications for this repository are marked as read.",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        {
+          "name": "update_pull_request",
+          "description": "Update an existing pull request in a GitHub repository.",
+          "parameters": {
+            "properties": {
+              "base": {
+                "description": "New base branch name",
+                "type": "string"
+              },
+              "body": {
+                "description": "New description",
+                "type": "string"
+              },
+              "maintainer_can_modify": {
+                "description": "Allow maintainer edits",
+                "type": "boolean"
+              },
+              "owner": {
+                "description": "Repository owner",
+                "type": "string"
+              },
+              "pullNumber": {
+                "description": "Pull request number to update",
+                "type": "number"
+              },
+              "repo": {
+                "description": "Repository name",
+                "type": "string"
+              },
+              "state": {
+                "description": "New state",
+                "enum": [
+                  "open",
+                  "closed"
+                ],
+                "type": "string"
+              },
+              "title": {
+                "description": "New title",
+                "type": "string"
+              }
+            },
+            "required": [
+              "owner",
+              "repo",
+              "pullNumber"
+            ],
+            "type": "object"
+          }
+        }
+      ]
+    }
+  ]
+}
+
+
+
+

@@ -175,7 +175,7 @@ impl GeminiClient {
         });
     }
 
-    pub fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>) {
+    pub fn add_model_response(&mut self, response: &str, function_calls: Vec<serde_json::Value>) {
         let mut parts = Vec::new();
         
         if !response.is_empty() {
@@ -186,7 +186,8 @@ impl GeminiClient {
             });
         }
         
-        if let Some(fc) = function_call {
+        // Add each function call as a separate part
+        for fc in function_calls {
             parts.push(Part {
                 text: None,
                 function_call: Some(fc),
@@ -512,8 +513,8 @@ impl crate::chat_client::ChatClient for GeminiClient {
         self.add_function_response(function_response)
     }
     
-    fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>) {
-        self.add_model_response(response, function_call)
+    fn add_model_response(&mut self, response: &str, function_calls: Vec<serde_json::Value>) {
+        self.add_model_response(response, function_calls)
     }
     
     fn clear_conversation(&mut self) {

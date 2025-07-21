@@ -20,7 +20,7 @@ pub trait ChatClient {
     
     /// Add a model response to the conversation history
     /// The function_call parameter format may vary between providers but should be JSON
-    fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>);
+    fn add_model_response(&mut self, response: &str, function_calls: Vec<serde_json::Value>);
     
     /// Clear the conversation history
     fn clear_conversation(&mut self);
@@ -77,24 +77,11 @@ impl ChatClient for AnyChatClient {
         }
     }
     
-    fn add_model_response(&mut self, response: &str, function_call: Option<serde_json::Value>) {
+    fn add_model_response(&mut self, response: &str, function_calls: Vec<serde_json::Value>) {
         match self {
-            AnyChatClient::Gemini(client) => client.add_model_response(response, function_call),
-            AnyChatClient::OpenAI(client) => {
-                // Convert function call format for OpenAI
-                let tool_calls = function_call.map(|fc| {
-                    vec![crate::openai::ToolCall {
-                        id: format!("call_{}", chrono::Utc::now().timestamp_millis()),
-                        call_type: "function".to_string(),
-                        function: crate::openai::FunctionCall {
-                            name: fc.get("name").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
-                            arguments: fc.get("args").map(|v| v.to_string()).unwrap_or_default(),
-                        },
-                    }]
-                });
-                client.add_model_response(response, tool_calls);
-            }
-            AnyChatClient::Mock(client) => client.add_model_response(response, function_call),
+            AnyChatClient::Gemini(client) => client.add_model_response(response, function_calls),
+            AnyChatClient::OpenAI(client) => client.add_model_response(response, function_calls),
+            AnyChatClient::Mock(client) => client.add_model_response(response, function_calls),
         }
     }
     
