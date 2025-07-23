@@ -5,6 +5,7 @@ pub mod openai;
 pub mod mock_llm;
 pub mod mcp_client;
 pub mod tools;
+pub mod ui;
 
 // Re-export commonly used types
 pub use chat_client::{ChatClient, AnyChatClient};

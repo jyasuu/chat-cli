@@ -8,6 +8,7 @@ mod function_calling;
 mod chat_client;
 mod mcp_client;
 mod tools;
+mod ui;
 
 use anyhow::Result;
 use dotenv::dotenv;
@@ -111,10 +112,10 @@ async fn main() -> Result<()> {
     println!();
     
     let mut streaming_mode = true;
-    let prompt_input = PromptInput::new().with_width(120);
     
     loop {
         // Get user input with fancy prompt
+        let mut prompt_input = ui::input_box::InputBox::new(" Input ");
         let input = prompt_input.get_input()?;
         let input = input.trim();
         
