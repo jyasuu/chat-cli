@@ -6,6 +6,8 @@ use crossterm::{
     style::{Color, Print, ResetColor, SetForegroundColor},
     terminal::{self, ClearType},
 };
+use chat_cli::ui::input_box;
+
 
 struct InputBox {
     lines: Vec<String>,
@@ -117,86 +119,95 @@ impl InputBox {
 }
 
 fn main() -> io::Result<()> {
-    // Enable raw mode for character-by-character input
-    terminal::enable_raw_mode()?;
-    
-    let mut stdout = io::stdout();
-    execute!(stdout, cursor::Hide)?;
-
-    println!("Rust CLI Key Input Demo");
-    println!("Type characters to see them in the box.");
-    println!("Press Alt+Enter to add a new line, Enter to create a new box, Esc to quit.\n");
-
-    let mut input_box = InputBox::new("Input");
-    let mut box_counter = 1;
-
-    // Initial draw
-    input_box.draw()?;
-
-    loop {
-        // Read input events
-        if event::poll(std::time::Duration::from_millis(100))? {
-            if let Event::Key(KeyEvent { code, modifiers, .. }) = event::read()? {
-                match code {
-                    KeyCode::Char(c) => {
-                        // Calculate current box height for clearing
-                        let box_height = input_box.lines.len() + 2; // +2 for top and bottom borders
-                        
-                        // Clear the current box display and move cursor to start
-                        execute!(stdout, cursor::MoveUp(box_height as u16))?;
-                        execute!(stdout, cursor::MoveToColumn(0))?;
-                        execute!(stdout, terminal::Clear(ClearType::FromCursorDown))?;
-                        
-                        // Add character and redraw
-                        input_box.add_char(c);
-                        input_box.draw()?;
-                    }
-                    KeyCode::Backspace => {
-                        // Calculate current box height for clearing
-                        let box_height = input_box.lines.len() + 2; // +2 for top and bottom borders
-                        
-                        // Clear the current box display and move cursor to start
-                        execute!(stdout, cursor::MoveUp(box_height as u16))?;
-                        execute!(stdout, cursor::MoveToColumn(0))?;
-                        execute!(stdout, terminal::Clear(ClearType::FromCursorDown))?;
-                        
-                        // Remove character and redraw
-                        input_box.remove_char();
-                        input_box.draw()?;
-                    }
-                    KeyCode::Enter => {
-                        if !modifiers.contains(KeyModifiers::ALT) {
-                            // Alt+Enter: Add new line within the box
-                            let box_height = input_box.lines.len() + 2;
-                            
-                            execute!(stdout, cursor::MoveUp(box_height as u16))?;
-                            execute!(stdout, cursor::MoveToColumn(0))?;
-                            execute!(stdout, terminal::Clear(ClearType::FromCursorDown))?;
-                            
-                            input_box.add_newline();
-                            input_box.draw()?;
-                        } else {
-                            // Regular Enter: Create new box
-                            box_counter += 1;
-                            input_box = InputBox::new(&format!("Input #{}", box_counter));
-                            
-                            println!(); // Add some spacing
-                            input_box.draw()?;
-                        }
-                    }
-                    KeyCode::Esc => {
-                        break;
-                    }
-                    _ => {}
-                }
-            }
-        }
+    let mut test_box = input_box::InputBox::new("Test Input");
+    let res = test_box.get_input();
+    match res {
+        Ok(str) => println!("{str}"),
+        Err(_) => panic!("Input Error"),
     }
 
-    // Cleanup
-    execute!(stdout, cursor::Show)?;
-    terminal::disable_raw_mode()?;
-    println!("\nGoodbye!");
+
+
+    // Enable raw mode for character-by-character input
+    // terminal::enable_raw_mode()?;
+    
+    // let mut stdout = io::stdout();
+    // execute!(stdout, cursor::Hide)?;
+
+    // println!("Rust CLI Key Input Demo");
+    // println!("Type characters to see them in the box.");
+    // println!("Press Alt+Enter to add a new line, Enter to create a new box, Esc to quit.\n");
+
+    // let mut input_box = InputBox::new("Input");
+    // let mut box_counter = 1;
+
+    // // Initial draw
+    // input_box.draw()?;
+
+    // loop {
+    //     // Read input events
+    //     if event::poll(std::time::Duration::from_millis(100))? {
+    //         if let Event::Key(KeyEvent { code, modifiers, .. }) = event::read()? {
+    //             match code {
+    //                 KeyCode::Char(c) => {
+    //                     // Calculate current box height for clearing
+    //                     let box_height = input_box.lines.len() + 2; // +2 for top and bottom borders
+                        
+    //                     // Clear the current box display and move cursor to start
+    //                     execute!(stdout, cursor::MoveUp(box_height as u16))?;
+    //                     execute!(stdout, cursor::MoveToColumn(0))?;
+    //                     execute!(stdout, terminal::Clear(ClearType::FromCursorDown))?;
+                        
+    //                     // Add character and redraw
+    //                     input_box.add_char(c);
+    //                     input_box.draw()?;
+    //                 }
+    //                 KeyCode::Backspace => {
+    //                     // Calculate current box height for clearing
+    //                     let box_height = input_box.lines.len() + 2; // +2 for top and bottom borders
+                        
+    //                     // Clear the current box display and move cursor to start
+    //                     execute!(stdout, cursor::MoveUp(box_height as u16))?;
+    //                     execute!(stdout, cursor::MoveToColumn(0))?;
+    //                     execute!(stdout, terminal::Clear(ClearType::FromCursorDown))?;
+                        
+    //                     // Remove character and redraw
+    //                     input_box.remove_char();
+    //                     input_box.draw()?;
+    //                 }
+    //                 KeyCode::Enter => {
+    //                     if !modifiers.contains(KeyModifiers::ALT) {
+    //                         // Alt+Enter: Add new line within the box
+    //                         let box_height = input_box.lines.len() + 2;
+                            
+    //                         execute!(stdout, cursor::MoveUp(box_height as u16))?;
+    //                         execute!(stdout, cursor::MoveToColumn(0))?;
+    //                         execute!(stdout, terminal::Clear(ClearType::FromCursorDown))?;
+                            
+    //                         input_box.add_newline();
+    //                         input_box.draw()?;
+    //                     } else {
+    //                         // Regular Enter: Create new box
+    //                         box_counter += 1;
+    //                         input_box = InputBox::new(&format!("Input #{}", box_counter));
+                            
+    //                         println!(); // Add some spacing
+    //                         input_box.draw()?;
+    //                     }
+    //                 }
+    //                 KeyCode::Esc => {
+    //                     break;
+    //                 }
+    //                 _ => {}
+    //             }
+    //         }
+    //     }
+    // }
+
+    // // Cleanup
+    // execute!(stdout, cursor::Show)?;
+    // terminal::disable_raw_mode()?;
+    // println!("\nGoodbye!");
 
     Ok(())
 }
