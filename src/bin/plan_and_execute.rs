@@ -3,6 +3,9 @@ use std::fmt;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tokio;
+use std::env;
+
+use chat_cli::chat_client::{AnyChatClient, ChatClient};
 
 // Core types and traits
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,84 +85,69 @@ pub trait Node: Send + Sync {
 // Planning node
 pub struct PlannerNode {
     name: String,
+    client: AnyChatClient,
 }
 
 impl PlannerNode {
     pub fn new(name: &str) -> Self {
+        let gemini_api_key = env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY not set");
+        let client = AnyChatClient::new_gemini(gemini_api_key, "gemini-1.5-flash-latest".to_string());
         Self {
             name: name.to_string(),
+            client,
         }
     }
 
-    // Mock planning logic - in real implementation, this would use LLM
-    fn create_plan(&self, objective: &str) -> Result<Plan, ExecutionError> {
-        // Simple example: break down objective into steps
-        let steps = match objective.to_lowercase().as_str() {
-            obj if obj.contains("research") => vec![
-                PlanStep {
-                    id: "step1".to_string(),
-                    action: "gather_sources".to_string(),
-                    description: "Gather relevant sources and information".to_string(),
-                    dependencies: vec![],
-                    completed: false,
-                },
-                PlanStep {
-                    id: "step2".to_string(),
-                    action: "analyze_information".to_string(),
-                    description: "Analyze gathered information".to_string(),
-                    dependencies: vec!["step1".to_string()],
-                    completed: false,
-                },
-                PlanStep {
-                    id: "step3".to_string(),
-                    action: "synthesize_results".to_string(),
-                    description: "Synthesize findings into final result".to_string(),
-                    dependencies: vec!["step2".to_string()],
-                    completed: false,
-                },
-            ],
-            obj if obj.contains("write") => vec![
-                PlanStep {
-                    id: "step1".to_string(),
-                    action: "outline".to_string(),
-                    description: "Create an outline".to_string(),
-                    dependencies: vec![],
-                    completed: false,
-                },
-                PlanStep {
-                    id: "step2".to_string(),
-                    action: "draft".to_string(),
-                    description: "Write initial draft".to_string(),
-                    dependencies: vec!["step1".to_string()],
-                    completed: false,
-                },
-                PlanStep {
-                    id: "step3".to_string(),
-                    action: "revise".to_string(),
-                    description: "Revise and finalize".to_string(),
-                    dependencies: vec!["step2".to_string()],
-                    completed: false,
-                },
-            ],
-            _ => vec![
-                PlanStep {
-                    id: "step1".to_string(),
-                    action: "analyze_task".to_string(),
-                    description: "Analyze the given task".to_string(),
-                    dependencies: vec![],
-                    completed: false,
-                },
-                PlanStep {
-                    id: "step2".to_string(),
-                    action: "execute_task".to_string(),
-                    description: "Execute the task".to_string(),
-                    dependencies: vec!["step1".to_string()],
-                    completed: false,
-                },
-            ],
-        };
+    async fn create_plan(&self, objective: &str) -> Result<Plan, ExecutionError> {
+        let prompt = format!(
+            r#"
+Create a plan to achieve the following objective: "{}"
 
-        Ok(Plan { steps })
+The plan should be a JSON object with a "steps" array. Each step should have the following fields:
+- "id": A unique identifier for the step (e.g., "step1").
+- "action": A short, actionable verb phrase (e.g., "gather_sources", "write_draft").
+- "description": A detailed description of what the step entails.
+- "dependencies": A list of step IDs that must be completed before this step can start.
+- "completed": Should be initialized to false.
+
+Example:
+{{
+  "steps": [
+    {{
+      "id": "step1",
+      "action": "analyze_requirements",
+      "description": "Understand the requirements of the objective.",
+      "dependencies": [],
+      "completed": false
+    }},
+    {{
+      "id": "step2",
+      "action": "execute_task",
+      "description": "Perform the main task based on the requirements.",
+      "dependencies": ["step1"],
+      "completed": false
+    }}
+  ]
+}}
+
+Now, generate the plan for the objective: "{}"
+"#,
+            objective, objective
+        );
+
+        let response = self.client.send_message(&prompt).await
+            .map_err(|e| ExecutionError::PlanningFailed(e.to_string()))?;
+
+        // Clean the response to extract only the JSON part
+        let json_response = response
+            .trim()
+            .replace("```json", "")
+            .replace("```", "")
+            .trim()
+            .to_string();
+
+        serde_json::from_str::<Plan>(&json_response)
+            .map_err(|e| ExecutionError::PlanningFailed(format!("Failed to parse plan: {}. Response: {}", e, json_response)))
     }
 }
 
@@ -169,7 +157,7 @@ impl Node for PlannerNode {
         let objective: String = state.get("objective")
             .ok_or_else(|| ExecutionError::PlanningFailed("No objective found in state".to_string()))?;
 
-        let plan = self.create_plan(&objective)?;
+        let plan = self.create_plan(&objective).await?;
         
         let mut new_state = State::new();
         new_state.set("plan", &plan);
@@ -205,6 +193,7 @@ pub struct ResearchHandler;
 #[async_trait]
 impl ActionHandler for ResearchHandler {
     async fn handle(&self, description: &str, _state: &State) -> Result<String, ExecutionError> {
+        println!("  -> Researching: {}", description);
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         Ok(format!("Completed: {}", description))
     }
@@ -215,6 +204,7 @@ pub struct WriteHandler;
 #[async_trait]
 impl ActionHandler for WriteHandler {
     async fn handle(&self, description: &str, _state: &State) -> Result<String, ExecutionError> {
+        println!("  -> Writing: {}", description);
         tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
         Ok(format!("Written: {}", description))
     }
@@ -225,6 +215,7 @@ pub struct DefaultHandler;
 #[async_trait]
 impl ActionHandler for DefaultHandler {
     async fn handle(&self, description: &str, _state: &State) -> Result<String, ExecutionError> {
+        println!("  -> Executing: {}", description);
         tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
         Ok(format!("Executed: {}", description))
     }
@@ -233,13 +224,17 @@ impl ActionHandler for DefaultHandler {
 impl ExecutorNode {
     pub fn new(name: &str) -> Self {
         let mut action_handlers: HashMap<String, Box<dyn ActionHandler>> = HashMap::new();
+        // Generic handlers
         action_handlers.insert("gather_sources".to_string(), Box::new(ResearchHandler));
         action_handlers.insert("analyze_information".to_string(), Box::new(ResearchHandler));
         action_handlers.insert("synthesize_results".to_string(), Box::new(ResearchHandler));
+        action_handlers.insert("research".to_string(), Box::new(ResearchHandler));
         action_handlers.insert("outline".to_string(), Box::new(WriteHandler));
         action_handlers.insert("draft".to_string(), Box::new(WriteHandler));
+        action_handlers.insert("write".to_string(), Box::new(WriteHandler));
         action_handlers.insert("revise".to_string(), Box::new(WriteHandler));
-        
+        action_handlers.insert("default".to_string(), Box::new(DefaultHandler));
+
         Self {
             name: name.to_string(),
             action_handlers,
@@ -249,7 +244,6 @@ impl ExecutorNode {
     fn get_next_executable_step(&self, plan: &Plan) -> Option<usize> {
         for (i, step) in plan.steps.iter().enumerate() {
             if !step.completed {
-                // Check if all dependencies are completed
                 let deps_completed = step.dependencies.iter().all(|dep_id| {
                     plan.steps.iter().any(|s| s.id == *dep_id && s.completed)
                 });
@@ -289,13 +283,11 @@ impl Node for ExecutorNode {
             new_state.set("plan", &plan);
             new_state.set("last_result", result);
             
-            // Check if all steps are completed
             let all_completed = plan.steps.iter().all(|s| s.completed);
             new_state.set("execution_complete", all_completed);
             
             Ok(new_state)
         } else {
-            // No more executable steps
             let mut new_state = State::new();
             new_state.set("plan", &plan);
             new_state.set("execution_complete", true);
@@ -326,16 +318,13 @@ impl PlanAndExecuteWorkflow {
         println!("🚀 Starting plan-and-execute workflow");
         println!("📝 Objective: {}", objective);
         
-        // Initialize state with objective
         let mut state = State::new();
         state.set("objective", objective.to_string());
 
-        // Planning phase
         println!("\n📋 PLANNING PHASE");
         let plan_result = self.planner.execute(&mut state).await?;
         state.merge(plan_result);
 
-        // Execution phase
         println!("\n⚡ EXECUTION PHASE");
         loop {
             let exec_result = self.executor.execute(&mut state).await?;
@@ -355,16 +344,17 @@ impl PlanAndExecuteWorkflow {
 // Example usage
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load .env file
+    dotenv::dotenv().ok();
+
     let workflow = PlanAndExecuteWorkflow::new();
     
-    // Example 1: Research task
     println!("======================================");
     let result1 = workflow.run("Research the latest trends in AI").await?;
     println!("\nFinal state keys: {:?}", result1.data.keys().collect::<Vec<_>>());
     
-    // Example 2: Writing task
     println!("\n{}", "======================================");
-    let result2 = workflow.run("Write a report on climate change").await?;
+    let result2 = workflow.run("Write a blog post about the Rust programming language").await?;
     println!("\nFinal state keys: {:?}", result2.data.keys().collect::<Vec<_>>());
     
     Ok(())
