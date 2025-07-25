@@ -17,6 +17,7 @@ pub struct OpenAIClient {
     conversation_history: Vec<Message>,
     system_message: Option<String>,
     available_tools: Vec<ToolDefinition>,
+    response_format: Option<ResponseFormat>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -75,6 +76,8 @@ struct ChatCompletionRequest {
     tools: Option<Vec<Tool>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tool_choice: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_format: Option<ResponseFormat>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -89,6 +92,21 @@ struct ToolFunction {
     name: String,
     description: String,
     parameters: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct ResponseFormat {
+    #[serde(rename = "type")]
+    format_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    json_schema: Option<JsonSchema>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct JsonSchema {
+    name: String,
+    strict: bool,
+    schema: serde_json::Value,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -175,6 +193,7 @@ impl OpenAIClient {
             conversation_history: Vec::new(),
             system_message: None,
             available_tools: Vec::new(),
+            response_format: None,
         }
     }
 
@@ -190,6 +209,21 @@ impl OpenAIClient {
     
     pub fn set_available_tools(&mut self, tools: Vec<ToolDefinition>) {
         self.available_tools = tools;
+    }
+
+    pub fn set_structured_output(&mut self, schema_name: &str, schema: serde_json::Value) {
+        self.response_format = Some(ResponseFormat {
+            format_type: "json_schema".to_string(),
+            json_schema: Some(JsonSchema {
+                name: schema_name.to_string(),
+                strict: true,
+                schema,
+            }),
+        });
+    }
+
+    pub fn clear_structured_output(&mut self) {
+        self.response_format = None;
     }
 
     pub fn add_user_message(&mut self, message: &str) {
@@ -310,6 +344,7 @@ impl OpenAIClient {
             stream: Some(false),
             tools,
             tool_choice: None,
+            response_format: self.response_format.clone(),
         };
 
         // Log the request payload
@@ -376,6 +411,7 @@ impl OpenAIClient {
             stream: Some(true),
             tools,
             tool_choice: None,
+            response_format: self.response_format.clone(),
         };
 
         // Log the request payload
