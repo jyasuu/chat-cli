@@ -1,0 +1,371 @@
+use std::collections::HashMap;
+use std::fmt;
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+use tokio;
+
+// Core types and traits
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct State {
+    pub data: HashMap<String, serde_json::Value>,
+}
+
+impl State {
+    pub fn new() -> Self {
+        Self {
+            data: HashMap::new(),
+        }
+    }
+
+    pub fn get<T>(&self, key: &str) -> Option<T>
+    where
+        T: for<'de> Deserialize<'de>,
+    {
+        self.data.get(key).and_then(|v| serde_json::from_value(v.clone()).ok())
+    }
+
+    pub fn set<T>(&mut self, key: &str, value: T)
+    where
+        T: Serialize,
+    {
+        if let Ok(json_value) = serde_json::to_value(value) {
+            self.data.insert(key.to_string(), json_value);
+        }
+    }
+
+    pub fn merge(&mut self, other: State) {
+        for (key, value) in other.data {
+            self.data.insert(key, value);
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Plan {
+    pub steps: Vec<PlanStep>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlanStep {
+    pub id: String,
+    pub action: String,
+    pub description: String,
+    pub dependencies: Vec<String>,
+    pub completed: bool,
+}
+
+#[derive(Debug)]
+pub enum ExecutionError {
+    NodeNotFound(String),
+    ExecutionFailed(String),
+    PlanningFailed(String),
+}
+
+impl fmt::Display for ExecutionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ExecutionError::NodeNotFound(name) => write!(f, "Node not found: {}", name),
+            ExecutionError::ExecutionFailed(msg) => write!(f, "Execution failed: {}", msg),
+            ExecutionError::PlanningFailed(msg) => write!(f, "Planning failed: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for ExecutionError {}
+
+#[async_trait]
+pub trait Node: Send + Sync {
+    async fn execute(&self, state: &mut State) -> Result<State, ExecutionError>;
+    fn name(&self) -> &str;
+}
+
+// Planning node
+pub struct PlannerNode {
+    name: String,
+}
+
+impl PlannerNode {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+        }
+    }
+
+    // Mock planning logic - in real implementation, this would use LLM
+    fn create_plan(&self, objective: &str) -> Result<Plan, ExecutionError> {
+        // Simple example: break down objective into steps
+        let steps = match objective.to_lowercase().as_str() {
+            obj if obj.contains("research") => vec![
+                PlanStep {
+                    id: "step1".to_string(),
+                    action: "gather_sources".to_string(),
+                    description: "Gather relevant sources and information".to_string(),
+                    dependencies: vec![],
+                    completed: false,
+                },
+                PlanStep {
+                    id: "step2".to_string(),
+                    action: "analyze_information".to_string(),
+                    description: "Analyze gathered information".to_string(),
+                    dependencies: vec!["step1".to_string()],
+                    completed: false,
+                },
+                PlanStep {
+                    id: "step3".to_string(),
+                    action: "synthesize_results".to_string(),
+                    description: "Synthesize findings into final result".to_string(),
+                    dependencies: vec!["step2".to_string()],
+                    completed: false,
+                },
+            ],
+            obj if obj.contains("write") => vec![
+                PlanStep {
+                    id: "step1".to_string(),
+                    action: "outline".to_string(),
+                    description: "Create an outline".to_string(),
+                    dependencies: vec![],
+                    completed: false,
+                },
+                PlanStep {
+                    id: "step2".to_string(),
+                    action: "draft".to_string(),
+                    description: "Write initial draft".to_string(),
+                    dependencies: vec!["step1".to_string()],
+                    completed: false,
+                },
+                PlanStep {
+                    id: "step3".to_string(),
+                    action: "revise".to_string(),
+                    description: "Revise and finalize".to_string(),
+                    dependencies: vec!["step2".to_string()],
+                    completed: false,
+                },
+            ],
+            _ => vec![
+                PlanStep {
+                    id: "step1".to_string(),
+                    action: "analyze_task".to_string(),
+                    description: "Analyze the given task".to_string(),
+                    dependencies: vec![],
+                    completed: false,
+                },
+                PlanStep {
+                    id: "step2".to_string(),
+                    action: "execute_task".to_string(),
+                    description: "Execute the task".to_string(),
+                    dependencies: vec!["step1".to_string()],
+                    completed: false,
+                },
+            ],
+        };
+
+        Ok(Plan { steps })
+    }
+}
+
+#[async_trait]
+impl Node for PlannerNode {
+    async fn execute(&self, state: &mut State) -> Result<State, ExecutionError> {
+        let objective: String = state.get("objective")
+            .ok_or_else(|| ExecutionError::PlanningFailed("No objective found in state".to_string()))?;
+
+        let plan = self.create_plan(&objective)?;
+        
+        let mut new_state = State::new();
+        new_state.set("plan", &plan);
+        new_state.set("current_step", 0usize);
+        
+        println!("📋 Plan created with {} steps", plan.steps.len());
+        for (i, step) in plan.steps.iter().enumerate() {
+            println!("  {}. {} - {}", i + 1, step.action, step.description);
+        }
+        
+        Ok(new_state)
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+}
+
+// Execution node
+pub struct ExecutorNode {
+    name: String,
+    action_handlers: HashMap<String, Box<dyn ActionHandler>>,
+}
+
+#[async_trait]
+pub trait ActionHandler: Send + Sync {
+    async fn handle(&self, description: &str, state: &State) -> Result<String, ExecutionError>;
+}
+
+// Mock action handlers
+pub struct ResearchHandler;
+
+#[async_trait]
+impl ActionHandler for ResearchHandler {
+    async fn handle(&self, description: &str, _state: &State) -> Result<String, ExecutionError> {
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        Ok(format!("Completed: {}", description))
+    }
+}
+
+pub struct WriteHandler;
+
+#[async_trait]
+impl ActionHandler for WriteHandler {
+    async fn handle(&self, description: &str, _state: &State) -> Result<String, ExecutionError> {
+        tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
+        Ok(format!("Written: {}", description))
+    }
+}
+
+pub struct DefaultHandler;
+
+#[async_trait]
+impl ActionHandler for DefaultHandler {
+    async fn handle(&self, description: &str, _state: &State) -> Result<String, ExecutionError> {
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+        Ok(format!("Executed: {}", description))
+    }
+}
+
+impl ExecutorNode {
+    pub fn new(name: &str) -> Self {
+        let mut action_handlers: HashMap<String, Box<dyn ActionHandler>> = HashMap::new();
+        action_handlers.insert("gather_sources".to_string(), Box::new(ResearchHandler));
+        action_handlers.insert("analyze_information".to_string(), Box::new(ResearchHandler));
+        action_handlers.insert("synthesize_results".to_string(), Box::new(ResearchHandler));
+        action_handlers.insert("outline".to_string(), Box::new(WriteHandler));
+        action_handlers.insert("draft".to_string(), Box::new(WriteHandler));
+        action_handlers.insert("revise".to_string(), Box::new(WriteHandler));
+        
+        Self {
+            name: name.to_string(),
+            action_handlers,
+        }
+    }
+
+    fn get_next_executable_step(&self, plan: &Plan) -> Option<usize> {
+        for (i, step) in plan.steps.iter().enumerate() {
+            if !step.completed {
+                // Check if all dependencies are completed
+                let deps_completed = step.dependencies.iter().all(|dep_id| {
+                    plan.steps.iter().any(|s| s.id == *dep_id && s.completed)
+                });
+                
+                if deps_completed {
+                    return Some(i);
+                }
+            }
+        }
+        None
+    }
+}
+
+#[async_trait]
+impl Node for ExecutorNode {
+    async fn execute(&self, state: &mut State) -> Result<State, ExecutionError> {
+        let mut plan: Plan = state.get("plan")
+            .ok_or_else(|| ExecutionError::ExecutionFailed("No plan found in state".to_string()))?;
+
+        if let Some(step_idx) = self.get_next_executable_step(&plan) {
+            let step = &mut plan.steps[step_idx];
+            
+            println!("🔄 Executing step: {} - {}", step.action, step.description);
+            
+            let handler = self.action_handlers.get(&step.action)
+                .or_else(|| self.action_handlers.get("default"))
+                .ok_or_else(|| ExecutionError::ExecutionFailed(
+                    format!("No handler found for action: {}", step.action)
+                ))?;
+
+            let result = handler.handle(&step.description, state).await?;
+            step.completed = true;
+            
+            println!("✅ {}", result);
+            
+            let mut new_state = State::new();
+            new_state.set("plan", &plan);
+            new_state.set("last_result", result);
+            
+            // Check if all steps are completed
+            let all_completed = plan.steps.iter().all(|s| s.completed);
+            new_state.set("execution_complete", all_completed);
+            
+            Ok(new_state)
+        } else {
+            // No more executable steps
+            let mut new_state = State::new();
+            new_state.set("plan", &plan);
+            new_state.set("execution_complete", true);
+            Ok(new_state)
+        }
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+}
+
+// Main workflow orchestrator
+pub struct PlanAndExecuteWorkflow {
+    planner: PlannerNode,
+    executor: ExecutorNode,
+}
+
+impl PlanAndExecuteWorkflow {
+    pub fn new() -> Self {
+        Self {
+            planner: PlannerNode::new("planner"),
+            executor: ExecutorNode::new("executor"),
+        }
+    }
+
+    pub async fn run(&self, objective: &str) -> Result<State, ExecutionError> {
+        println!("🚀 Starting plan-and-execute workflow");
+        println!("📝 Objective: {}", objective);
+        
+        // Initialize state with objective
+        let mut state = State::new();
+        state.set("objective", objective.to_string());
+
+        // Planning phase
+        println!("\n📋 PLANNING PHASE");
+        let plan_result = self.planner.execute(&mut state).await?;
+        state.merge(plan_result);
+
+        // Execution phase
+        println!("\n⚡ EXECUTION PHASE");
+        loop {
+            let exec_result = self.executor.execute(&mut state).await?;
+            state.merge(exec_result);
+            
+            let execution_complete: bool = state.get("execution_complete").unwrap_or(false);
+            if execution_complete {
+                break;
+            }
+        }
+
+        println!("\n🎉 Workflow completed successfully!");
+        Ok(state)
+    }
+}
+
+// Example usage
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let workflow = PlanAndExecuteWorkflow::new();
+    
+    // Example 1: Research task
+    println!("======================================");
+    let result1 = workflow.run("Research the latest trends in AI").await?;
+    println!("\nFinal state keys: {:?}", result1.data.keys().collect::<Vec<_>>());
+    
+    // Example 2: Writing task
+    println!("\n{}", "======================================");
+    let result2 = workflow.run("Write a report on climate change").await?;
+    println!("\nFinal state keys: {:?}", result2.data.keys().collect::<Vec<_>>());
+    
+    Ok(())
+}
