@@ -26,11 +26,13 @@ pub trait ChatClient {
     fn clear_conversation(&mut self);
     
     /// Send a message and get a non-streaming response
-    async fn send_message(&self, message: &str) -> Result<String>;
+    /// Uses the current conversation history, call add_user_message first to add user input
+    async fn send_message(&self) -> Result<String>;
     
     /// Send a message and get a streaming response
     /// Returns a receiver that yields (text_chunk, optional_function_call) tuples
-    async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>>;
+    /// Uses the current conversation history, call add_user_message first to add user input
+    async fn send_message_stream(&self) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>>;
     
     /// Get the name of the client (for display purposes)
     fn client_name(&self) -> &str;
@@ -93,19 +95,19 @@ impl ChatClient for AnyChatClient {
         }
     }
     
-    async fn send_message(&self, message: &str) -> Result<String> {
+    async fn send_message(&self) -> Result<String> {
         match self {
-            AnyChatClient::Gemini(client) => client.send_message(message).await,
-            AnyChatClient::OpenAI(client) => client.send_message(message).await,
-            AnyChatClient::Mock(client) => client.send_message(message).await,
+            AnyChatClient::Gemini(client) => client.send_message().await,
+            AnyChatClient::OpenAI(client) => client.send_message().await,
+            AnyChatClient::Mock(client) => client.send_message().await,
         }
     }
     
-    async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+    async fn send_message_stream(&self) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
         match self {
-            AnyChatClient::Gemini(client) => client.send_message_stream(message).await,
-            AnyChatClient::OpenAI(client) => client.send_message_stream(message).await,
-            AnyChatClient::Mock(client) => client.send_message_stream(message).await,
+            AnyChatClient::Gemini(client) => client.send_message_stream().await,
+            AnyChatClient::OpenAI(client) => client.send_message_stream().await,
+            AnyChatClient::Mock(client) => client.send_message_stream().await,
         }
     }
     

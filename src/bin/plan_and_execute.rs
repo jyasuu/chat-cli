@@ -98,7 +98,7 @@ impl PlannerNode {
         }
     }
 
-    async fn create_plan(&self, objective: &str) -> Result<Plan, ExecutionError> {
+    async fn create_plan(&mut self, objective: &str) -> Result<Plan, ExecutionError> {
         let prompt = format!(
             r#"
 Create a plan to achieve the following objective: "{}"
@@ -135,7 +135,8 @@ Now, generate the plan for the objective: "{}"
             objective, objective
         );
 
-        let response = self.client.send_message(&prompt).await
+        self.client.add_user_message(&prompt);
+        let response = self.client.send_message().await
             .map_err(|e| ExecutionError::PlanningFailed(e.to_string()))?;
 
         // Clean the response to extract only the JSON part
@@ -157,7 +158,61 @@ impl Node for PlannerNode {
         let objective: String = state.get("objective")
             .ok_or_else(|| ExecutionError::PlanningFailed("No objective found in state".to_string()))?;
 
-        let plan = self.create_plan(&objective).await?;
+        // We need to make self mutable, but since this is a trait method, we need to work around it
+        // For now, we'll create a new client instance
+        let gemini_api_key = std::env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY not set");
+        let mut temp_client = AnyChatClient::new_gemini(gemini_api_key, "gemini-1.5-flash-latest".to_string());
+        
+        let prompt = format!(
+            r#"
+Create a plan to achieve the following objective: "{}"
+
+The plan should be a JSON object with a "steps" array. Each step should have the following fields:
+- "id": A unique identifier for the step (e.g., "step1").
+- "action": A short, actionable verb phrase (e.g., "gather_sources", "write_draft").
+- "description": A detailed description of what the step entails.
+- "dependencies": A list of step IDs that must be completed before this step can start.
+- "completed": Should be initialized to false.
+
+Example:
+{{
+  "steps": [
+    {{
+      "id": "step1",
+      "action": "analyze_requirements",
+      "description": "Understand the requirements of the objective.",
+      "dependencies": [],
+      "completed": false
+    }},
+    {{
+      "id": "step2",
+      "action": "execute_task",
+      "description": "Perform the main task based on the requirements.",
+      "dependencies": ["step1"],
+      "completed": false
+    }}
+  ]
+}}
+
+Now, generate the plan for the objective: "{}"
+"#,
+            objective, objective
+        );
+
+        temp_client.add_user_message(&prompt);
+        let response = temp_client.send_message().await
+            .map_err(|e| ExecutionError::PlanningFailed(e.to_string()))?;
+
+        // Clean the response to extract only the JSON part
+        let json_response = response
+            .trim()
+            .replace("```json", "")
+            .replace("```", "")
+            .trim()
+            .to_string();
+
+        let plan = serde_json::from_str::<Plan>(&json_response)
+            .map_err(|e| ExecutionError::PlanningFailed(format!("Failed to parse plan: {}. Response: {}", e, json_response)))?;
         
         let mut new_state = State::new();
         new_state.set("plan", &plan);

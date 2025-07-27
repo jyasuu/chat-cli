@@ -170,9 +170,6 @@ async fn main() -> Result<()> {
             _ => {}
         }
         
-        // Add user message to conversation history
-        client.add_user_message(input);
-        
         // Send message to Gemini with loading animation
         if streaming_mode {
             // Use ResponseCard for proper streaming with loading animation
@@ -194,7 +191,8 @@ async fn main() -> Result<()> {
                 .with_style(AnimationStyle::Spinner);
             let loading_handle = loading.start();
             
-            match client.send_message_stream(input).await {
+            client.add_user_message(input);
+            match client.send_message_stream().await {
                 Ok(mut rx) => {
                     loading_handle.stop().await;
                     
@@ -266,7 +264,7 @@ async fn main() -> Result<()> {
                         // After executing all functions, get LLM response to all results
                         if !all_function_responses.is_empty() {
                             println!("\n[LLM] Getting LLM response to function result...");
-                            match client.send_message_stream("").await {
+                            match client.send_message_stream().await {
                                 Ok(mut follow_up_rx) => {
                                     let follow_up_card = ResponseCard::with_title("Response");
                                     follow_up_card.start_streaming()?;
@@ -309,8 +307,9 @@ async fn main() -> Result<()> {
             }
         } else {
             // Non-streaming response with boxed loading animation
+            client.add_user_message(input);
             let response_result = show_loading_in_response_box(
-                client.send_message(input)
+                client.send_message()
             ).await;
             
             match response_result {

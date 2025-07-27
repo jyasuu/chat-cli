@@ -277,7 +277,7 @@ impl OpenAIClient {
         self.conversation_history.clear();
     }
 
-    fn build_messages(&self, user_message: Option<&str>) -> Vec<Message> {
+    fn build_messages(&self) -> Vec<Message> {
         let mut messages = Vec::new();
 
         // Add system message if present
@@ -293,17 +293,6 @@ impl OpenAIClient {
 
         // Add conversation history
         messages.extend(self.conversation_history.clone());
-
-        // Add new user message if provided
-        if let Some(msg) = user_message {
-            messages.push(Message {
-                role: "user".to_string(),
-                content: MessageContent::Text(msg.to_string()),
-                name: None,
-                tool_calls: None,
-                tool_call_id: None,
-            });
-        }
 
         messages
     }
@@ -329,10 +318,10 @@ impl OpenAIClient {
     }
 
     #[allow(dead_code)]
-    pub async fn send_message(&self, message: &str) -> Result<String> {
+    pub async fn send_message(&self) -> Result<String> {
         let url = format!("{}/chat/completions", self.base_url);
 
-        let messages = self.build_messages(if message.is_empty() {None} else{Some(message)});
+        let messages = self.build_messages();
         let tools = self.build_tools();
 
         let request = ChatCompletionRequest {
@@ -396,10 +385,10 @@ impl OpenAIClient {
         }
     }
 
-    pub async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+    pub async fn send_message_stream(&self) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
         let url = format!("{}/chat/completions", self.base_url);
 
-        let messages = self.build_messages(if message.is_empty() {None} else{Some(message)});
+        let messages = self.build_messages();
         let tools = self.build_tools();
 
         let request = ChatCompletionRequest {
@@ -658,12 +647,12 @@ impl crate::chat_client::ChatClient for OpenAIClient {
         self.clear_conversation()
     }
     
-    async fn send_message(&self, message: &str) -> Result<String> {
-        self.send_message(message).await
+    async fn send_message(&self) -> Result<String> {
+        self.send_message().await
     }
     
-    async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
-        self.send_message_stream(message).await
+    async fn send_message_stream(&self) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+        self.send_message_stream().await
     }
     
     fn client_name(&self) -> &str {

@@ -262,26 +262,13 @@ impl GeminiClient {
     }
 
     #[allow(dead_code)]
-    pub async fn send_message(&self, message: &str) -> Result<String> {
+    pub async fn send_message(&self) -> Result<String> {
         let url = format!(
             "{}/{}:generateContent?key={}",
             self.base_url, self.model, self.api_key
         );
 
-        let mut contents = self.conversation_history.clone();
-        
-        if !message.is_empty()
-        {
-            contents.push(Content {
-                role: "user".to_string(),
-                parts: vec![Part {
-                    text: Some(message.to_string()),
-                    function_call: None,
-                    function_response: None,
-                }],
-            });
-
-        }
+        let contents = self.conversation_history.clone();
         
         let tools = if self.available_tools.is_empty() {
             None
@@ -363,24 +350,13 @@ impl GeminiClient {
         Err(anyhow!("No text content in response"))
     }
 
-    pub async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+    pub async fn send_message_stream(&self) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
         let url = format!(
             "{}/{}:streamGenerateContent?alt=sse&key={}",
             self.base_url, self.model, self.api_key
         );
 
-        let mut contents = self.conversation_history.clone();
-        if !message.is_empty()
-        {
-            contents.push(Content {
-                role: "user".to_string(),
-                parts: vec![Part {
-                    text: Some(message.to_string()),
-                    function_call: None,
-                    function_response: None,
-                }],
-            });
-        }
+        let contents = self.conversation_history.clone();
 
         let tools = if self.available_tools.is_empty() {
             None
@@ -597,12 +573,12 @@ impl crate::chat_client::ChatClient for GeminiClient {
         self.clear_conversation()
     }
     
-    async fn send_message(&self, message: &str) -> Result<String> {
-        self.send_message(message).await
+    async fn send_message(&self) -> Result<String> {
+        self.send_message().await
     }
     
-    async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
-        self.send_message_stream(message).await
+    async fn send_message_stream(&self) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+        self.send_message_stream().await
     }
     
     fn client_name(&self) -> &str {

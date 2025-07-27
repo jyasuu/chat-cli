@@ -66,7 +66,8 @@ async fn test_openai_structured_output() -> Result<()> {
     
     let prompt = "For the given objective, come up with a simple step by step plan. This plan should involve individual tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps. The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.\n\nYour objective was this:\nwhat is the hometown of the mens 2024 Australia open winner?";
     
-    match client.send_message(prompt).await {
+    client.add_user_message(prompt);
+    match client.send_message().await {
         Ok(response) => {
             println!("OpenAI Response:");
             println!("{}", response);
@@ -110,7 +111,8 @@ async fn test_gemini_structured_output() -> Result<()> {
     
     let prompt = "For the given objective, come up with a simple step by step plan. This plan should involve individual tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps. The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.\n\nYour objective was this:\nwhat is the hometown of the mens 2024 Australia open winner?\n\nRespond with a JSON object containing a 'steps' array.";
     
-    match client.send_message(prompt).await {
+    client.add_user_message(prompt);
+    match client.send_message().await {
         Ok(response) => {
             println!("Gemini Response:");
             println!("{}", response);
@@ -157,7 +159,8 @@ async fn test_simple_schema() -> Result<()> {
         let mut client = OpenAIClient::new(api_key, "deepseek/deepseek-chat-v3-0324:free".to_string()).with_base_url("https://openrouter.ai/api/v1".to_string());
         client.set_structured_output("SimpleResponse", schema_json.clone());
         
-        match client.send_message("What is 2+2? Provide your confidence level.").await {
+        client.add_user_message("What is 2+2? Provide your confidence level.");
+        match client.send_message().await {
             Ok(response) => {
                 println!("Response: {}", response);
                 match serde_json::from_str::<SimpleResponse>(&response) {
@@ -175,7 +178,8 @@ async fn test_simple_schema() -> Result<()> {
         let mut client = GeminiClient::new(api_key, "gemini-1.5-flash".to_string());
         client.set_structured_output(schema_json);
         
-        match client.send_message("What is 2+2? Provide your confidence level.").await {
+        client.add_user_message("What is 2+2? Provide your confidence level.");
+        match client.send_message().await {
             Ok(response) => {
                 println!("Response: {}", response);
                 match serde_json::from_str::<SimpleResponse>(&response) {
