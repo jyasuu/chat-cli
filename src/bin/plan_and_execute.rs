@@ -1,416 +1,310 @@
-use std::collections::HashMap;
-use std::fmt;
-use async_trait::async_trait;
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-use tokio;
+use schemars::{JsonSchema, schema_for};
 use std::env;
+use std::io::Write;
+use tokio::io::{self, AsyncBufReadExt, BufReader};
+use chat_cli::openai::OpenAIClient;
+use chat_cli::function_calling::{FunctionExecutor, FunctionCall};
+use chat_cli::chat_client::ChatClient;
 
-use chat_cli::chat_client::{AnyChatClient, ChatClient};
-
-// Core types and traits
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct State {
-    pub data: HashMap<String, serde_json::Value>,
-}
-
-impl State {
-    pub fn new() -> Self {
-        Self {
-            data: HashMap::new(),
-        }
-    }
-
-    pub fn get<T>(&self, key: &str) -> Option<T>
-    where
-        T: for<'de> Deserialize<'de>,
-    {
-        self.data.get(key).and_then(|v| serde_json::from_value(v.clone()).ok())
-    }
-
-    pub fn set<T>(&mut self, key: &str, value: T)
-    where
-        T: Serialize,
-    {
-        if let Ok(json_value) = serde_json::to_value(value) {
-            self.data.insert(key.to_string(), json_value);
-        }
-    }
-
-    pub fn merge(&mut self, other: State) {
-        for (key, value) in other.data {
-            self.data.insert(key, value);
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Plan {
-    pub steps: Vec<PlanStep>,
+    /// Different steps to follow, should be in sorted order
+    pub steps: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PlanStep {
-    pub id: String,
-    pub action: String,
-    pub description: String,
-    pub dependencies: Vec<String>,
-    pub completed: bool,
+pub struct StepResult {
+    pub step_number: usize,
+    pub step_description: String,
+    pub result: String,
+    pub success: bool,
 }
 
-#[derive(Debug)]
-pub enum ExecutionError {
-    NodeNotFound(String),
-    ExecutionFailed(String),
-    PlanningFailed(String),
+pub struct PlanAndExecuteAgent {
+    planner_client: OpenAIClient,
+    executor_client: OpenAIClient,
+    function_executor: FunctionExecutor,
 }
 
-impl fmt::Display for ExecutionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ExecutionError::NodeNotFound(name) => write!(f, "Node not found: {}", name),
-            ExecutionError::ExecutionFailed(msg) => write!(f, "Execution failed: {}", msg),
-            ExecutionError::PlanningFailed(msg) => write!(f, "Planning failed: {}", msg),
-        }
-    }
-}
-
-impl std::error::Error for ExecutionError {}
-
-#[async_trait]
-pub trait Node: Send + Sync {
-    async fn execute(&self, state: &mut State) -> Result<State, ExecutionError>;
-    fn name(&self) -> &str;
-}
-
-// Planning node
-pub struct PlannerNode {
-    name: String,
-    client: AnyChatClient,
-}
-
-impl PlannerNode {
-    pub fn new(name: &str) -> Self {
-        let gemini_api_key = env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY not set");
-        let client = AnyChatClient::new_gemini(gemini_api_key, "gemini-1.5-flash-latest".to_string());
+impl PlanAndExecuteAgent {
+    pub fn new(api_key: String, model: String) -> Self {
+        let mut planner_client = OpenAIClient::new(api_key.clone(), model.clone());
+        let mut executor_client = OpenAIClient::new(api_key, model);
+        
+        // Set up the planner with structured output for plan generation
+        let plan_schema = schema_for!(Plan);
+        let plan_schema_json = serde_json::to_value(plan_schema).unwrap();
+        planner_client.set_structured_output("Plan", plan_schema_json);
+        
+        // Load system prompts
+        let planner_prompt = "You are a strategic planning assistant. For any given objective, create a simple step-by-step plan that will lead to the correct answer. Each step should be specific, actionable, and contain all necessary information. Do not add superfluous steps. The final step should yield the complete answer to the objective.";
+        let executor_prompt = "You are a helpful assistant that executes individual steps of a plan. You have access to various tools to help you complete tasks. Use the available tools when needed to gather information, perform calculations, or complete actions. Be thorough and accurate in your execution.";
+        
+        planner_client.load_system_prompt(planner_prompt).unwrap();
+        executor_client.load_system_prompt(executor_prompt).unwrap();
+        
+        // Set up function executor with available tools
+        let function_executor = FunctionExecutor::new();
+        
+        // Provide tools to the executor client
+        executor_client.set_available_tools(function_executor.get_available_tools());
+        
         Self {
-            name: name.to_string(),
-            client,
+            planner_client,
+            executor_client,
+            function_executor,
         }
     }
-
-    async fn create_plan(&mut self, objective: &str) -> Result<Plan, ExecutionError> {
-        let prompt = format!(
-            r#"
-Create a plan to achieve the following objective: "{}"
-
-The plan should be a JSON object with a "steps" array. Each step should have the following fields:
-- "id": A unique identifier for the step (e.g., "step1").
-- "action": A short, actionable verb phrase (e.g., "gather_sources", "write_draft").
-- "description": A detailed description of what the step entails.
-- "dependencies": A list of step IDs that must be completed before this step can start.
-- "completed": Should be initialized to false.
-
-Example:
-{{
-  "steps": [
-    {{
-      "id": "step1",
-      "action": "analyze_requirements",
-      "description": "Understand the requirements of the objective.",
-      "dependencies": [],
-      "completed": false
-    }},
-    {{
-      "id": "step2",
-      "action": "execute_task",
-      "description": "Perform the main task based on the requirements.",
-      "dependencies": ["step1"],
-      "completed": false
-    }}
-  ]
-}}
-
-Now, generate the plan for the objective: "{}"
-"#,
-            objective, objective
+    
+    pub fn with_base_url(mut self, base_url: String) -> Self {
+        self.planner_client = self.planner_client.with_base_url(base_url.clone());
+        self.executor_client = self.executor_client.with_base_url(base_url);
+        self
+    }
+    
+    /// Generate a plan for the given objective
+    pub async fn create_plan(&mut self, objective: &str) -> Result<Plan> {
+        println!("🎯 Creating plan for objective: {}", objective);
+        
+        let planning_prompt = format!(
+            "For the given objective, come up with a simple step by step plan. This plan should involve individual tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps. The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.\n\nYour objective: {}",
+            objective
         );
-
-        self.client.add_user_message(&prompt);
-        let response = self.client.send_message().await
-            .map_err(|e| ExecutionError::PlanningFailed(e.to_string()))?;
-
-        // Clean the response to extract only the JSON part
-        let json_response = response
-            .trim()
-            .replace("```json", "")
-            .replace("```", "")
-            .trim()
-            .to_string();
-
-        serde_json::from_str::<Plan>(&json_response)
-            .map_err(|e| ExecutionError::PlanningFailed(format!("Failed to parse plan: {}. Response: {}", e, json_response)))
-    }
-}
-
-#[async_trait]
-impl Node for PlannerNode {
-    async fn execute(&self, state: &mut State) -> Result<State, ExecutionError> {
-        let objective: String = state.get("objective")
-            .ok_or_else(|| ExecutionError::PlanningFailed("No objective found in state".to_string()))?;
-
-        // We need to make self mutable, but since this is a trait method, we need to work around it
-        // For now, we'll create a new client instance
-        let gemini_api_key = std::env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY not set");
-        let mut temp_client = AnyChatClient::new_gemini(gemini_api_key, "gemini-1.5-flash-latest".to_string());
         
-        let prompt = format!(
-            r#"
-Create a plan to achieve the following objective: "{}"
-
-The plan should be a JSON object with a "steps" array. Each step should have the following fields:
-- "id": A unique identifier for the step (e.g., "step1").
-- "action": A short, actionable verb phrase (e.g., "gather_sources", "write_draft").
-- "description": A detailed description of what the step entails.
-- "dependencies": A list of step IDs that must be completed before this step can start.
-- "completed": Should be initialized to false.
-
-Example:
-{{
-  "steps": [
-    {{
-      "id": "step1",
-      "action": "analyze_requirements",
-      "description": "Understand the requirements of the objective.",
-      "dependencies": [],
-      "completed": false
-    }},
-    {{
-      "id": "step2",
-      "action": "execute_task",
-      "description": "Perform the main task based on the requirements.",
-      "dependencies": ["step1"],
-      "completed": false
-    }}
-  ]
-}}
-
-Now, generate the plan for the objective: "{}"
-"#,
-            objective, objective
+        self.planner_client.clear_conversation();
+        self.planner_client.add_user_message(&planning_prompt);
+        
+        let response = self.planner_client.send_message().await?;
+        
+        // Parse the structured response
+        let plan: Plan = serde_json::from_str(&response)
+            .map_err(|e| anyhow!("Failed to parse plan from response: {}. Response was: {}", e, response))?;
+        
+        println!("📋 Generated plan with {} steps:", plan.steps.len());
+        for (i, step) in plan.steps.iter().enumerate() {
+            println!("   {}. {}", i + 1, step);
+        }
+        
+        Ok(plan)
+    }
+    
+    /// Execute a single step of the plan
+    pub async fn execute_step(&mut self, step_number: usize, step_description: &str, plan_context: &[String]) -> Result<StepResult> {
+        println!("\n🔧 Executing step {}: {}", step_number, step_description);
+        
+        // Create context for the step execution
+        let plan_context_str = plan_context.iter()
+            .enumerate()
+            .map(|(i, step)| format!("{}. {}", i + 1, step))
+            .collect::<Vec<_>>()
+            .join("\n");
+        
+        let execution_prompt = format!(
+            "For the following plan:\n{}\n\nYou are tasked with executing step {}: {}.\n\nUse the available tools if needed to complete this step. Provide a clear and complete result.",
+            plan_context_str,
+            step_number,
+            step_description
         );
-
-        temp_client.add_user_message(&prompt);
-        let response = temp_client.send_message().await
-            .map_err(|e| ExecutionError::PlanningFailed(e.to_string()))?;
-
-        // Clean the response to extract only the JSON part
-        let json_response = response
-            .trim()
-            .replace("```json", "")
-            .replace("```", "")
-            .trim()
-            .to_string();
-
-        let plan = serde_json::from_str::<Plan>(&json_response)
-            .map_err(|e| ExecutionError::PlanningFailed(format!("Failed to parse plan: {}. Response: {}", e, json_response)))?;
         
-        let mut new_state = State::new();
-        new_state.set("plan", &plan);
-        new_state.set("current_step", 0usize);
+        // Clear conversation and set up for this step
+        self.executor_client.clear_conversation();
+        self.executor_client.add_user_message(&execution_prompt);
         
-        println!("📋 Plan created with {} steps", plan.steps.len());
-        for (i, step) in plan.steps.iter().enumerate() {
-            println!("  {}. {} - {}", i + 1, step.action, step.description);
+        // Execute with streaming to handle function calls
+        let mut receiver = self.executor_client.send_message_stream().await?;
+        let mut response_text = String::new();
+        let mut pending_function_calls = Vec::new();
+        
+        // Process streaming response
+        while let Some((text_chunk, function_call)) = receiver.recv().await {
+            if !text_chunk.is_empty() {
+                print!("{}", text_chunk);
+                response_text.push_str(&text_chunk);
+            }
+            
+            if let Some(fc) = function_call {
+                pending_function_calls.push(fc);
+            }
         }
         
-        Ok(new_state)
-    }
-
-    fn name(&self) -> &str {
-        &self.name
-    }
-}
-
-// Execution node
-pub struct ExecutorNode {
-    name: String,
-    action_handlers: HashMap<String, Box<dyn ActionHandler>>,
-}
-
-#[async_trait]
-pub trait ActionHandler: Send + Sync {
-    async fn handle(&self, description: &str, state: &State) -> Result<String, ExecutionError>;
-}
-
-// Mock action handlers
-pub struct ResearchHandler;
-
-#[async_trait]
-impl ActionHandler for ResearchHandler {
-    async fn handle(&self, description: &str, _state: &State) -> Result<String, ExecutionError> {
-        println!("  -> Researching: {}", description);
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-        Ok(format!("Completed: {}", description))
-    }
-}
-
-pub struct WriteHandler;
-
-#[async_trait]
-impl ActionHandler for WriteHandler {
-    async fn handle(&self, description: &str, _state: &State) -> Result<String, ExecutionError> {
-        println!("  -> Writing: {}", description);
-        tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
-        Ok(format!("Written: {}", description))
-    }
-}
-
-pub struct DefaultHandler;
-
-#[async_trait]
-impl ActionHandler for DefaultHandler {
-    async fn handle(&self, description: &str, _state: &State) -> Result<String, ExecutionError> {
-        println!("  -> Executing: {}", description);
-        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
-        Ok(format!("Executed: {}", description))
-    }
-}
-
-impl ExecutorNode {
-    pub fn new(name: &str) -> Self {
-        let mut action_handlers: HashMap<String, Box<dyn ActionHandler>> = HashMap::new();
-        // Generic handlers
-        action_handlers.insert("gather_sources".to_string(), Box::new(ResearchHandler));
-        action_handlers.insert("analyze_information".to_string(), Box::new(ResearchHandler));
-        action_handlers.insert("synthesize_results".to_string(), Box::new(ResearchHandler));
-        action_handlers.insert("research".to_string(), Box::new(ResearchHandler));
-        action_handlers.insert("outline".to_string(), Box::new(WriteHandler));
-        action_handlers.insert("draft".to_string(), Box::new(WriteHandler));
-        action_handlers.insert("write".to_string(), Box::new(WriteHandler));
-        action_handlers.insert("revise".to_string(), Box::new(WriteHandler));
-        action_handlers.insert("default".to_string(), Box::new(DefaultHandler));
-
-        Self {
-            name: name.to_string(),
-            action_handlers,
-        }
-    }
-
-    fn get_next_executable_step(&self, plan: &Plan) -> Option<usize> {
-        for (i, step) in plan.steps.iter().enumerate() {
-            if !step.completed {
-                let deps_completed = step.dependencies.iter().all(|dep_id| {
-                    plan.steps.iter().any(|s| s.id == *dep_id && s.completed)
-                });
+        // Execute any function calls
+        for fc_json in pending_function_calls {
+            if let Ok(function_call) = serde_json::from_value::<FunctionCall>(fc_json) {
+                println!("\n🔧 Executing function: {}", function_call.name);
                 
-                if deps_completed {
-                    return Some(i);
+                match self.function_executor.execute_function(&function_call).await {
+                    Ok(function_response) => {
+                        // Add function response to conversation
+                        self.executor_client.add_model_response(&response_text, vec![serde_json::json!({
+                            "name": function_call.name,
+                            "args": function_call.args
+                        })]);
+                        self.executor_client.add_function_response(&function_response);
+                        
+                        // Get follow-up response
+                        let follow_up_response = self.executor_client.send_message().await?;
+                        response_text.push_str("\n");
+                        response_text.push_str(&follow_up_response);
+                        print!("{}", follow_up_response);
+                    }
+                    Err(e) => {
+                        let error_msg = format!("Function execution failed: {}", e);
+                        println!("\n❌ {}", error_msg);
+                        response_text.push_str(&format!("\nError: {}", error_msg));
+                    }
                 }
             }
         }
-        None
-    }
-}
-
-#[async_trait]
-impl Node for ExecutorNode {
-    async fn execute(&self, state: &mut State) -> Result<State, ExecutionError> {
-        let mut plan: Plan = state.get("plan")
-            .ok_or_else(|| ExecutionError::ExecutionFailed("No plan found in state".to_string()))?;
-
-        if let Some(step_idx) = self.get_next_executable_step(&plan) {
-            let step = &mut plan.steps[step_idx];
-            
-            println!("🔄 Executing step: {} - {}", step.action, step.description);
-            
-            let handler = self.action_handlers.get(&step.action)
-                .or_else(|| self.action_handlers.get("default"))
-                .ok_or_else(|| ExecutionError::ExecutionFailed(
-                    format!("No handler found for action: {}", step.action)
-                ))?;
-
-            let result = handler.handle(&step.description, state).await?;
-            step.completed = true;
-            
-            println!("✅ {}", result);
-            
-            let mut new_state = State::new();
-            new_state.set("plan", &plan);
-            new_state.set("last_result", result);
-            
-            let all_completed = plan.steps.iter().all(|s| s.completed);
-            new_state.set("execution_complete", all_completed);
-            
-            Ok(new_state)
-        } else {
-            let mut new_state = State::new();
-            new_state.set("plan", &plan);
-            new_state.set("execution_complete", true);
-            Ok(new_state)
-        }
-    }
-
-    fn name(&self) -> &str {
-        &self.name
-    }
-}
-
-// Main workflow orchestrator
-pub struct PlanAndExecuteWorkflow {
-    planner: PlannerNode,
-    executor: ExecutorNode,
-}
-
-impl PlanAndExecuteWorkflow {
-    pub fn new() -> Self {
-        Self {
-            planner: PlannerNode::new("planner"),
-            executor: ExecutorNode::new("executor"),
-        }
-    }
-
-    pub async fn run(&self, objective: &str) -> Result<State, ExecutionError> {
-        println!("🚀 Starting plan-and-execute workflow");
-        println!("📝 Objective: {}", objective);
         
-        let mut state = State::new();
-        state.set("objective", objective.to_string());
-
-        println!("\n📋 PLANNING PHASE");
-        let plan_result = self.planner.execute(&mut state).await?;
-        state.merge(plan_result);
-
-        println!("\n⚡ EXECUTION PHASE");
-        loop {
-            let exec_result = self.executor.execute(&mut state).await?;
-            state.merge(exec_result);
+        println!(); // New line after step completion
+        
+        Ok(StepResult {
+            step_number,
+            step_description: step_description.to_string(),
+            result: response_text,
+            success: true,
+        })
+    }
+    
+    /// Execute the complete plan
+    pub async fn execute_plan(&mut self, plan: &Plan) -> Result<Vec<StepResult>> {
+        let mut results = Vec::new();
+        
+        println!("\n🚀 Starting plan execution...\n");
+        
+        for (i, step) in plan.steps.iter().enumerate() {
+            let step_number = i + 1;
             
-            let execution_complete: bool = state.get("execution_complete").unwrap_or(false);
-            if execution_complete {
-                break;
+            match self.execute_step(step_number, step, &plan.steps).await {
+                Ok(result) => {
+                    results.push(result);
+                }
+                Err(e) => {
+                    println!("❌ Step {} failed: {}", step_number, e);
+                    results.push(StepResult {
+                        step_number,
+                        step_description: step.clone(),
+                        result: format!("Failed: {}", e),
+                        success: false,
+                    });
+                    // Continue with remaining steps even if one fails
+                }
             }
         }
-
-        println!("\n🎉 Workflow completed successfully!");
-        Ok(state)
+        
+        Ok(results)
+    }
+    
+    /// Run the complete plan and execute workflow
+    pub async fn plan_and_execute(&mut self, objective: &str) -> Result<String> {
+        // Step 1: Create the plan
+        let plan = self.create_plan(objective).await?;
+        
+        // Step 2: Execute the plan
+        let results = self.execute_plan(&plan).await?;
+        
+        // Step 3: Summarize results
+        println!("\n📊 Plan Execution Summary:");
+        println!("{}", "=".repeat(50));
+        
+        let mut final_answer = String::new();
+        
+        for result in &results {
+            let status = if result.success { "✅" } else { "❌" };
+            println!("{} Step {}: {}", status, result.step_number, result.step_description);
+            
+            if result.success {
+                final_answer = result.result.clone(); // Use the last successful result as final answer
+            }
+        }
+        
+        println!("\n🎯 Final Answer:");
+        println!("{}", final_answer);
+        
+        Ok(final_answer)
     }
 }
 
-// Example usage
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Load .env file
+async fn main() -> Result<()> {
+    // Load environment variables
     dotenv::dotenv().ok();
-
-    let workflow = PlanAndExecuteWorkflow::new();
     
-    println!("======================================");
-    let result1 = workflow.run("Research the latest trends in AI").await?;
-    println!("\nFinal state keys: {:?}", result1.data.keys().collect::<Vec<_>>());
+    let api_key = env::var("OPENAI_API_KEY")
+        .map_err(|_| anyhow!("OPENAI_API_KEY environment variable not set"))?;
     
-    println!("\n{}", "======================================");
-    let result2 = workflow.run("Write a blog post about the Rust programming language").await?;
-    println!("\nFinal state keys: {:?}", result2.data.keys().collect::<Vec<_>>());
+    let model = env::var("OPENAI_MODEL").unwrap_or_else(|_| "gpt-4".to_string());
+    let base_url = env::var("OPENAI_BASE_URL").ok();
+    
+    // Create the agent
+    let mut agent = if let Some(url) = base_url {
+        PlanAndExecuteAgent::new(api_key, model).with_base_url(url)
+    } else {
+        PlanAndExecuteAgent::new(api_key, model)
+    };
+    
+    println!("🤖 Plan and Execute Agent");
+    println!("Type your objective and I'll create a plan and execute it step by step.");
+    println!("Type 'quit' or 'exit' to stop.\n");
+    
+    let stdin = io::stdin();
+    let mut reader = BufReader::new(stdin);
+    let mut line = String::new();
+    
+    loop {
+        print!("📝 Enter your objective: ");
+        std::io::stdout().flush().unwrap();
+        
+        line.clear();
+        reader.read_line(&mut line).await?;
+        let objective = line.trim();
+        
+        if objective.is_empty() {
+            continue;
+        }
+        
+        if objective.eq_ignore_ascii_case("quit") || objective.eq_ignore_ascii_case("exit") {
+            println!("👋 Goodbye!");
+            break;
+        }
+        
+        println!("\n{}", "=".repeat(60));
+        
+        match agent.plan_and_execute(objective).await {
+            Ok(_) => {
+                println!("\n✅ Objective completed successfully!");
+            }
+            Err(e) => {
+                println!("\n❌ Failed to complete objective: {}", e);
+            }
+        }
+        
+        println!("\n{}\n", "=".repeat(60));
+    }
     
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[tokio::test]
+    async fn test_plan_creation() {
+        // This test requires API key to be set
+        if env::var("OPENAI_API_KEY").is_err() {
+            return;
+        }
+        
+        let api_key = env::var("OPENAI_API_KEY").unwrap();
+        let mut agent = PlanAndExecuteAgent::new(api_key, "gpt-3.5-turbo".to_string());
+        
+        let objective = "What is 2 + 2?";
+        let plan = agent.create_plan(objective).await.unwrap();
+        
+        assert!(!plan.steps.is_empty());
+        assert!(plan.steps.len() <= 5); // Should be a simple plan
+    }
 }
