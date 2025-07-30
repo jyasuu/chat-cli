@@ -67,12 +67,19 @@ impl MockLLMClient {
     }
 
     /// Get the next response (cycles through available responses)
-    fn get_next_response(&mut self, message: &str) -> (String, Option<serde_json::Value>) {
-        // Check if message should trigger a function call
-        let message_lower = message.to_lowercase();
+    fn get_next_response(&mut self) -> (String, Option<serde_json::Value>) {
+        // Check if the last user message should trigger a function call
+        let last_user_message = self.conversation_history
+            .iter()
+            .rev()
+            .find(|msg| msg.role == "user")
+            .map(|msg| msg.content.clone())
+            .unwrap_or_default();
+            
+        let message_lower = last_user_message.to_lowercase();
         for (trigger, function_call) in &self.function_calls {
             if message_lower.contains(trigger) {
-                let response = format!("I need to call a function to help with: {}", message);
+                let response = format!("I need to call a function to help with: {}", last_user_message);
                 return (response, Some(function_call.clone()));
             }
         }
@@ -85,9 +92,9 @@ impl MockLLMClient {
             self.response_index += 1;
             
             // Add some context based on the message
-            if message.to_lowercase().contains("test") {
+            if message_lower.contains("test") {
                 format!("Mock LLM (Test Mode): {}", response)
-            } else if message.to_lowercase().contains("error") {
+            } else if message_lower.contains("error") {
                 "Mock LLM: Simulating error handling scenario".to_string()
             } else {
                 format!("Mock LLM: {}", response)
@@ -156,15 +163,12 @@ impl MockLLMClient {
         self.response_index = 0;
     }
 
-    pub async fn send_message(&mut self, message: &str) -> Result<String> {
-        // Add user message to history
-        self.add_user_message(message);
-
+    pub async fn send_message(&mut self) -> Result<String> {
         // Simulate some processing delay
         tokio::time::sleep(Duration::from_millis(self.delay_ms * 2)).await;
 
         // Get response
-        let (response, function_call) = self.get_next_response(message);
+        let (response, function_call) = self.get_next_response();
 
         // Add model response to history
         self.add_model_response(&response, function_call.map_or(vec![], |fc| vec![fc]));
@@ -172,11 +176,8 @@ impl MockLLMClient {
         Ok(response)
     }
 
-    pub async fn send_message_stream(&mut self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
-        // Add user message to history
-        self.add_user_message(message);
-
-        let (response, function_call) = self.get_next_response(message);
+    pub async fn send_message_stream(&mut self) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+        let (response, function_call) = self.get_next_response();
         let chunks = self.split_into_chunks(&response);
         let delay_ms = self.delay_ms;
 
@@ -251,18 +252,15 @@ impl crate::chat_client::ChatClient for MockLLMClient {
         self.clear_conversation()
     }
 
-    async fn send_message(&self, message: &str) -> Result<String> {
+    async fn send_message(&self) -> Result<String> {
         // Clone self to make it mutable for the mock
         let mut mock_self = self.clone();
-        
-        // Add user message to history
-        mock_self.add_user_message(message);
 
         // Simulate some processing delay
         tokio::time::sleep(Duration::from_millis(mock_self.delay_ms * 2)).await;
 
         // Get response
-        let (response, function_call) = mock_self.get_next_response(message);
+        let (response, function_call) = mock_self.get_next_response();
 
         // Add model response to history
         mock_self.add_model_response(&response, function_call.map_or(vec![], |fc| vec![fc]));
@@ -270,14 +268,11 @@ impl crate::chat_client::ChatClient for MockLLMClient {
         Ok(response)
     }
 
-    async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+    async fn send_message_stream(&self) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
         // Clone self to make it mutable for the mock
         let mut mock_self = self.clone();
-        
-        // Add user message to history
-        mock_self.add_user_message(message);
 
-        let (response, function_call) = mock_self.get_next_response(message);
+        let (response, function_call) = mock_self.get_next_response();
         let chunks = mock_self.split_into_chunks(&response);
         let delay_ms = mock_self.delay_ms;
 

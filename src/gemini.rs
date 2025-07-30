@@ -17,6 +17,7 @@ pub struct GeminiClient {
     conversation_history: Vec<Content>,
     system_instruction: Option<SystemInstruction>,
     available_tools: Vec<ToolDefinition>,
+    structured_output_schema: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -73,6 +74,10 @@ struct GenerationConfig {
     top_k: i32,
     #[serde(rename = "maxOutputTokens")]
     max_output_tokens: i32,
+    #[serde(rename = "responseMimeType", skip_serializing_if = "Option::is_none")]
+    response_mime_type: Option<String>,
+    #[serde(rename = "responseSchema", skip_serializing_if = "Option::is_none")]
+    response_schema: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -105,19 +110,62 @@ impl GeminiClient {
             conversation_history: Vec::new(),
             system_instruction: None,
             available_tools: Vec::new(),
+            structured_output_schema: None,
         }
     }
 
-    /// Sanitize JSON schema for Gemini API by removing unsupported fields
+    /// Sanitize JSON schema for Gemini API by removing unsupported fields and flattening $defs
     fn sanitize_schema_for_gemini(schema: &serde_json::Value) -> serde_json::Value {
         match schema {
             serde_json::Value::Object(map) => {
                 let mut new_map = serde_json::Map::new();
+                
+                // Handle $defs by flattening them
+                if let Some(defs) = map.get("$defs") {
+                    if let serde_json::Value::Object(defs_map) = defs {
+                        // For now, just take the first definition if it exists
+                        // This is a simplified approach for the demo
+                        for (_, def_value) in defs_map {
+                            return Self::sanitize_schema_for_gemini(def_value);
+                        }
+                    }
+                }
+                
                 for (key, value) in map {
                     // Skip unsupported fields
-                    if key == "additionalProperties" {
+                    match key.as_str() {
+                        "$schema" | "$defs" | "additionalProperties" | "title" => continue,
+                        "$ref" => {
+                            // Handle $ref by trying to resolve it (simplified)
+                            continue;
+                        }
+                        "format" => {
+                            // Convert unsupported formats
+                            if let Some(format_str) = value.as_str() {
+                                match format_str {
+                                    "uint8" | "uint16" | "uint32" => {
+                                        new_map.insert("format".to_string(), serde_json::Value::String("int32".to_string()));
+                                        continue;
+                                    }
+                                    "uint64" => {
+                                        new_map.insert("format".to_string(), serde_json::Value::String("int64".to_string()));
+                                        continue;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                    
+                    // Handle oneOf by taking the first option (simplified)
+                    if key == "oneOf" && value.is_array() {
+                        if let Some(first_option) = value.as_array().and_then(|arr| arr.first()) {
+                            return Self::sanitize_schema_for_gemini(first_option);
+                        }
                         continue;
                     }
+                    
                     // Recursively sanitize nested objects
                     new_map.insert(key.clone(), Self::sanitize_schema_for_gemini(value));
                 }
@@ -147,6 +195,14 @@ impl GeminiClient {
     
     pub fn set_available_tools(&mut self, tools: Vec<ToolDefinition>) {
         self.available_tools = tools;
+    }
+
+    pub fn set_structured_output(&mut self, schema: serde_json::Value) {
+        self.structured_output_schema = Some(Self::sanitize_schema_for_gemini(&schema));
+    }
+
+    pub fn clear_structured_output(&mut self) {
+        self.structured_output_schema = None;
     }
 
     pub fn add_user_message(&mut self, message: &str) {
@@ -206,37 +262,28 @@ impl GeminiClient {
     }
 
     #[allow(dead_code)]
-    pub async fn send_message(&self, message: &str) -> Result<String> {
+    pub async fn send_message(&self) -> Result<String> {
         let url = format!(
             "{}/{}:generateContent?key={}",
             self.base_url, self.model, self.api_key
         );
 
-        let mut contents = self.conversation_history.clone();
+        let contents = self.conversation_history.clone();
         
-        if !message.is_empty()
-        {
-            contents.push(Content {
-                role: "user".to_string(),
-                parts: vec![Part {
-                    text: Some(message.to_string()),
-                    function_call: None,
-                    function_response: None,
-                }],
-            });
-
-        }
-        
-        let tools = Some(vec![Tool {
-            function_declarations: self.available_tools
-                .iter()
-                .map(|tool| FunctionDeclaration {
-                    name: tool.name.clone(),
-                    description: tool.description.clone(),
-                    parameters: Self::sanitize_schema_for_gemini(&tool.parameters),
-                })
-                .collect(),
-        }]);
+        let tools = if self.available_tools.is_empty() {
+            None
+        } else {
+            Some(vec![Tool {
+                function_declarations: self.available_tools
+                    .iter()
+                    .map(|tool| FunctionDeclaration {
+                        name: tool.name.clone(),
+                        description: tool.description.clone(),
+                        parameters: Self::sanitize_schema_for_gemini(&tool.parameters),
+                    })
+                    .collect(),
+            }])
+        };
 
         let request = GenerateContentRequest {
             contents,
@@ -245,6 +292,12 @@ impl GeminiClient {
                 top_p: 0.95,
                 top_k: 40,
                 max_output_tokens: 2048,
+                response_mime_type: if self.structured_output_schema.is_some() {
+                    Some("application/json".to_string())
+                } else {
+                    None
+                },
+                response_schema: self.structured_output_schema.clone(),
             }),
             system_instruction: self.system_instruction.clone(),
             tools,
@@ -297,35 +350,28 @@ impl GeminiClient {
         Err(anyhow!("No text content in response"))
     }
 
-    pub async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+    pub async fn send_message_stream(&self) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
         let url = format!(
             "{}/{}:streamGenerateContent?alt=sse&key={}",
             self.base_url, self.model, self.api_key
         );
 
-        let mut contents = self.conversation_history.clone();
-        if !message.is_empty()
-        {
-            contents.push(Content {
-                role: "user".to_string(),
-                parts: vec![Part {
-                    text: Some(message.to_string()),
-                    function_call: None,
-                    function_response: None,
-                }],
-            });
-        }
+        let contents = self.conversation_history.clone();
 
-        let tools = Some(vec![Tool {
-            function_declarations: self.available_tools
-                .iter()
-                .map(|tool| FunctionDeclaration {
-                    name: tool.name.clone(),
-                    description: tool.description.clone(),
-                    parameters: Self::sanitize_schema_for_gemini(&tool.parameters),
-                })
-                .collect(),
-        }]);
+        let tools = if self.available_tools.is_empty() {
+            None
+        } else {
+            Some(vec![Tool {
+                function_declarations: self.available_tools
+                    .iter()
+                    .map(|tool| FunctionDeclaration {
+                        name: tool.name.clone(),
+                        description: tool.description.clone(),
+                        parameters: Self::sanitize_schema_for_gemini(&tool.parameters),
+                    })
+                    .collect(),
+            }])
+        };
 
         let request = GenerateContentRequest {
             contents,
@@ -334,6 +380,12 @@ impl GeminiClient {
                 top_p: 0.95,
                 top_k: 40,
                 max_output_tokens: 2048,
+                response_mime_type: if self.structured_output_schema.is_some() {
+                    Some("application/json".to_string())
+                } else {
+                    None
+                },
+                response_schema: self.structured_output_schema.clone(),
             }),
             system_instruction: self.system_instruction.clone(),
             tools,
@@ -521,12 +573,12 @@ impl crate::chat_client::ChatClient for GeminiClient {
         self.clear_conversation()
     }
     
-    async fn send_message(&self, message: &str) -> Result<String> {
-        self.send_message(message).await
+    async fn send_message(&self) -> Result<String> {
+        self.send_message().await
     }
     
-    async fn send_message_stream(&self, message: &str) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
-        self.send_message_stream(message).await
+    async fn send_message_stream(&self) -> Result<mpsc::Receiver<(String, Option<serde_json::Value>)>> {
+        self.send_message_stream().await
     }
     
     fn client_name(&self) -> &str {
